@@ -1,18 +1,74 @@
-from turtle import Shape
 import numpy as np
 from typing import TypeVar, Any
 
 ShapeLike = TypeVar("ShapeLike", bound=Any)
 
 
-def generalized_max(x: np.ndarray, axis: ShapeLike = None, alpha=np.inf):
-    if alpha < np.inf:
+def generalized_max(x: np.ndarray, axis: ShapeLike = None, alpha: float = np.inf):
+    """Generalized maximum function.
+
+    As `alpha` goes to infinity this function transforms from a smooth
+    maximum to standard maximum. This function is frequently used by
+    boolean CSG operations to avoid hard transitions.
+
+    Based on the wikipedia article
+    https://en.wikipedia.org/wiki/Smooth_maximum
+
+    Params
+        x: The input values to take the maximum over
+        axis: Optional axis to perform operation on
+        alpha: Defines the smoothness of the maximum approximation. Lower values
+            give smoother results.
+
+    Returns
+        y: (smooth) maximum along axis.
+    """
+    if np.isfinite(alpha):
         xmax = np.max(x, axis=axis, keepdims=True)
         ex = np.exp(alpha * (x - xmax))
         smax = np.sum(x * ex, axis=axis) / np.sum(ex, axis=axis)
         return smax
     else:
         return np.max(x, axis=axis)
+
+
+def hom(v, value=1):
+    """Returns v as homogeneous vectors by inserting one more element into the last axis
+    the parameter value defines which value to insert (meaningful values would be 0 and 1)
+    >>> homogenize([1, 2, 3]).tolist()
+    [1, 2, 3, 1]
+    >>> homogenize([1, 2, 3], 9).tolist()
+    [1, 2, 3, 9]
+    >>> homogenize([[1, 2], [3, 4]]).tolist()
+    [[1, 2, 1], [3, 4, 1]]
+    """
+    v = np.asanyarray(v)
+    return np.insert(v, v.shape[-1], value, axis=-1)
+
+
+def dehom(a):
+    """Makes homogeneous vectors inhomogenious by dividing by the last element in the last axis
+    >>> dehomogenize([1, 2, 4, 2]).tolist()
+    [0.5, 1.0, 2.0]
+    >>> dehomogenize([[1, 2], [4, 4]]).tolist()
+    [[0.5], [1.0]]
+    """
+    a = np.asfarray(a)
+    return a[..., :-1] / a[..., None, -1]
+
+
+def translate(values: np.ndarray) -> np.ndarray:
+    """Construct and return a translation matrix"""
+    m = np.eye(4, dtype=np.float32)
+    m[:3, 3] = values
+    return m
+
+
+def scale(values: np.ndarray) -> np.ndarray:
+    """Construct and return a scaling matrix"""
+    m = np.eye(4, dtype=np.float32)
+    m[[0, 1, 2], [0, 1, 2]] = values
+    return m
 
 
 if __name__ == "__main__":

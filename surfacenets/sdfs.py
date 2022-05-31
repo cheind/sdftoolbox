@@ -1,0 +1,107 @@
+from multiprocessing.sharedctypes import Value
+import numpy as np
+import abc
+
+
+class SDF(abc.ABC):
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        return self.value(x)
+
+    @abc.abstractmethod
+    def value(self, x: np.ndarray) -> np.ndarray:
+        ...
+
+    def __or__(a: "SDF", b: "SDF") -> "Union":
+        return Union(a, b)
+
+
+class Sphere(SDF):
+    def __init__(self, center: np.ndarray, radius: float) -> None:
+        self.center = np.asarray(center).reshape(3)
+        self.radius = radius
+
+    def value(self, x: np.ndarray) -> np.ndarray:
+        x = np.atleast_2d(x)
+        d2 = np.square(x - self.center[..., :]).sum(-1)
+        return d2 - self.radius**2
+
+
+class Union(SDF):
+    def __init__(self, *sdfs: tuple[SDF, ...]) -> None:
+        if len(sdfs) == 0:
+            raise ValueError("Need at least one SDF")
+        self.children = sdfs
+        super().__init__()
+
+    def value(self, x: np.ndarray) -> np.ndarray:
+        return np.stack([c.value(x) for c in self.children], 0).min(0)
+
+
+if __name__ == "__main__":
+    # https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/
+    from skimage.measure import marching_cubes
+    import matplotlib.pyplot as plt
+
+    res = (40, 40, 40)
+    min_corner = np.array([-2.0] * 3)
+    max_corner = np.array([2.0] * 3)
+
+    ranges = [
+        np.linspace(min_corner[0], max_corner[0], res[0]),
+        np.linspace(min_corner[1], max_corner[1], res[1]),
+        np.linspace(min_corner[2], max_corner[2], res[2]),
+    ]
+
+    X, Y, Z = np.meshgrid(*ranges)
+    xyz = np.stack((X, Y, Z), -1)
+    spacing = (
+        ranges[0][1] - ranges[0][0],
+        ranges[1][1] - ranges[1][0],
+        ranges[2][1] - ranges[2][0],
+    )
+
+    s1 = Sphere([0.0, 0.0, 0.0], 1.0)
+    s2 = Sphere([1.0, 0.0, 0.0], 1.0)
+    sdf = s1 | s2
+    values = sdf(xyz)
+
+    verts, faces, normals, _ = marching_cubes(values, 0.0, spacing=spacing)
+    verts += min_corner[None, :]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+    ax.plot_trisurf(
+        verts[:, 0],
+        verts[:, 1],
+        faces,
+        verts[:, 2],
+        cmap="Spectral",
+        antialiased=True,
+        linewidth=0
+        # edgecolor="white",
+    )
+    ax.set_xlim(min_corner[0], max_corner[0])
+    ax.set_ylim(min_corner[1], max_corner[1])
+    ax.set_zlim(min_corner[2], max_corner[2])
+    ax.set_box_aspect(
+        (
+            max_corner[0] - min_corner[0],
+            max_corner[1] - min_corner[1],
+            max_corner[2] - min_corner[2],
+        )
+    )
+
+    plt.show()
+
+    # fig = go.Figure(
+    #     data=go.Isosurface(
+    #         x=xyz[..., 0].flatten(),
+    #         y=xyz[..., 1].flatten(),
+    #         z=xyz[..., 2].flatten(),
+    #         value=values.flatten(),
+    #         isomin=0,
+    #         isomax=0,
+    #         # caps=dict(x_show=False, y_show=False),
+    #     )
+    # )
+    # fig.show()

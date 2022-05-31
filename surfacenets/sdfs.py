@@ -75,6 +75,7 @@ if __name__ == "__main__":
     # https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/
     from skimage.measure import marching_cubes
     import matplotlib.pyplot as plt
+    import time
 
     res = (40, 40, 40)
     min_corner = np.array([-2.0] * 3)
@@ -97,7 +98,9 @@ if __name__ == "__main__":
     s1 = Sphere([0.0, 0.0, 0.0], 1.0)
     s2 = Sphere([1.0, 0.0, 0.0], 1.0)
     sdf = s1.subtract(s2, alpha=0.5)
+    t0 = time.perf_counter()
     values = sdf(xyz)
+    print("Eval SDF took", time.perf_counter() - t0, "secs")
 
     verts, faces, normals, _ = marching_cubes(values, 0.0, spacing=spacing)
     verts += min_corner[None, :]

@@ -1,6 +1,7 @@
-from multiprocessing.sharedctypes import Value
 import numpy as np
 import abc
+
+from . import maths
 
 
 class SDF(abc.ABC):
@@ -11,8 +12,14 @@ class SDF(abc.ABC):
     def value(self, x: np.ndarray) -> np.ndarray:
         ...
 
-    def __or__(a: "SDF", b: "SDF") -> "Union":
-        return Union(a, b)
+    def merge(self, *others: list["SDF"], alpha: float = np.inf) -> "Union":
+        return Union([self] + list(others), alpha=alpha)
+
+    def intersect(self, *others: list["SDF"], alpha: float = np.inf) -> "Intersection":
+        return Intersection([self] + list(others), alpha=alpha)
+
+    def subtract(self, *others: list["SDF"], alpha: float = np.inf) -> "Difference":
+        return Difference([self] + list(others), alpha=alpha)
 
 
 class Sphere(SDF):
@@ -27,14 +34,41 @@ class Sphere(SDF):
 
 
 class Union(SDF):
-    def __init__(self, *sdfs: tuple[SDF, ...]) -> None:
+    def __init__(self, sdfs: list[SDF], alpha: float = np.inf) -> None:
         if len(sdfs) == 0:
             raise ValueError("Need at least one SDF")
         self.children = sdfs
-        super().__init__()
+        self.alpha = alpha
 
     def value(self, x: np.ndarray) -> np.ndarray:
-        return np.stack([c.value(x) for c in self.children], 0).min(0)
+        values = np.stack([c.value(x) for c in self.children], 0)
+        # min = -max(-values)
+        return -maths.generalized_max(-values, 0, alpha=self.alpha)
+
+
+class Intersection(SDF):
+    def __init__(self, sdfs: list[SDF], alpha: float = np.inf) -> None:
+        if len(sdfs) == 0:
+            raise ValueError("Need at least one SDF")
+        self.children = sdfs
+        self.alpha = alpha
+
+    def value(self, x: np.ndarray) -> np.ndarray:
+        values = np.stack([c.value(x) for c in self.children], 0)
+        return maths.generalized_max(values, 0, alpha=self.alpha)
+
+
+class Difference(SDF):
+    def __init__(self, sdfs: list[SDF], alpha: float = np.inf) -> None:
+        if len(sdfs) == 0:
+            raise ValueError("Need at least one SDF")
+        self.children = sdfs
+        self.alpha = alpha
+
+    def value(self, x: np.ndarray) -> np.ndarray:
+        values = np.stack([c.value(x) for c in self.children], 0)
+        values[1:] *= -1
+        return maths.generalized_max(values, 0, alpha=self.alpha)
 
 
 if __name__ == "__main__":
@@ -62,7 +96,7 @@ if __name__ == "__main__":
 
     s1 = Sphere([0.0, 0.0, 0.0], 1.0)
     s2 = Sphere([1.0, 0.0, 0.0], 1.0)
-    sdf = s1 | s2
+    sdf = s1.subtract(s2, alpha=0.5)
     values = sdf(xyz)
 
     verts, faces, normals, _ = marching_cubes(values, 0.0, spacing=spacing)

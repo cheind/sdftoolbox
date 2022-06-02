@@ -10,14 +10,14 @@ class VoxelTopology:
             [0, 0, 0, 0],
             [0, 0, 0, 1],
             [0, 0, 0, 2],
+            [1, 0, 0, 0],
             [1, 0, 0, 1],
-            [1, 0, 0, 2],
             [0, 1, 0, 0],
             [0, 1, 0, 2],
-            [0, 0, 1, 0],
+            [0, 0, 1, 2],
             [0, 0, 1, 1],
-            [1, 1, 0, 2],
-            [0, 1, 1, 0],
+            [1, 1, 0, 0],
+            [0, 1, 1, 2],
             [1, 0, 1, 1],
         ],
         dtype=np.int32,
@@ -99,8 +99,9 @@ class VoxelTopology:
             + VoxelTopology.EDGE_VOXEL_OFFSETS[elabels]
         )
         if ravel:
-            neighbors = self.ravel_nd(neighbors, self.ext_sample_shape)
-
+            neighbors = self.ravel_nd(
+                neighbors.reshape(-1, 3), self.ext_sample_shape
+            ).reshape(-1, 4)
         return neighbors
 
     def find_voxel_edges(

@@ -300,26 +300,17 @@ def surface_net3(
             sdf_values[ti, tj, tk] - sdf_values[si, sj, sk]
         )
     active_edge_mask = np.logical_and(t >= 0, t <= 1.0)
-    print(np.sum(active_edge_mask))
     t[~active_edge_mask] = np.nan
-
-    # tr = t[np.isfinite(t)]
-    # plt.figure()
-    # plt.hist(tr, bins=100)
-    # plt.show()
 
     edge_isect = (1 - t[:, None]) * sijk + t[:, None] * tijk
 
     active_edges = top.edge_ids[active_edge_mask]
     active_quads = top.find_voxels_sharing_edge(active_edges)
-    active_voxels = np.unique(active_quads)
-
-    # verts = np.zeros(top.ext_sample_shape + (3,), dtype=np.float32)
+    active_voxels = np.unique(active_quads.reshape(-1))
     active_voxel_edges = top.find_voxel_edges(active_voxels)
-    print(active_voxel_edges.shape, edge_isect.shape)
 
     e = edge_isect[active_voxel_edges.reshape(-1)].reshape(-1, 12, 3)
-    verts = np.nanmean(e, 1) * spacing - spacing
+    verts = np.nanmean(e, 1) * spacing - spacing  # subtract padding again
     return verts
 
 
@@ -347,8 +338,10 @@ if __name__ == "__main__":
         ranges[2][1] - ranges[2][0],
     )
 
-    s1 = sdfs.Sphere([0.0, 0.0, 0.0], 1.0)
-    values = s1(xyz)
+    s1 = sdfs.Sphere([-0.5, 0.0, 0.0], 1.0)
+    s2 = sdfs.Sphere([0.5, 0.0, 0.0], 1.0)
+    s = s1.merge(s2)
+    values = s(xyz)
 
     # verts, faces, normals, _ = marching_cubes(values, 0.0, spacing=spacing)
     # verts += min_corner[None, :]
@@ -357,7 +350,7 @@ if __name__ == "__main__":
     # plots.plot_mesh(verts, faces, ax)
 
     t0 = time.perf_counter()
-    verts = surface_net3(s1(xyz), spacing, vertex_placement_mode="naive")
+    verts = surface_net3(s(xyz), spacing, vertex_placement_mode="naive")
     verts += min_corner[None, :]
     ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], s=5)
     print("Surface-nets took", time.perf_counter() - t0, "secs")

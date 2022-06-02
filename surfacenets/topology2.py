@@ -27,9 +27,9 @@ class VoxelTopology:
         [
             [
                 [0, 0, 0],
+                [-1, 0, 0],
+                [-1, -1, 0],
                 [0, -1, 0],
-                [0, -1, -1],
-                [0, 0, -1],
             ],
             [
                 [0, 0, 0],
@@ -39,9 +39,9 @@ class VoxelTopology:
             ],
             [
                 [0, 0, 0],
-                [-1, 0, 0],
-                [-1, -1, 0],
                 [0, -1, 0],
+                [0, -1, -1],
+                [0, 0, -1],
             ],
         ],
         dtype=np.int32,
@@ -76,7 +76,7 @@ class VoxelTopology:
             edges = self.unravel_nd(edges, self.edge_shape)
         offs = np.eye(3, dtype=np.int32)
         src = edges[..., :3]
-        src += (1, 1, 1)
+        src = src + (1, 1, 1)
         dst = src + offs[edges[..., -1]]
         if ravel:
             src = self.ravel_nd(src, self.ext_sample_shape)
@@ -91,7 +91,7 @@ class VoxelTopology:
         if edges.ndim == 1:
             edges = self.unravel_nd(edges, self.edge_shape)
         voxels = edges[..., :3]
-        voxels = voxels + (1, 1, 1)
+        voxels = voxels
         elabels = edges[..., -1]
 
         neighbors = (
@@ -124,7 +124,9 @@ class VoxelTopology:
         )
         edges = voxels + VoxelTopology.VOXEL_EDGE_OFFSETS
         if ravel:
-            edges = self.ravel_nd(edges, self.edge_shape)
+            edges = self.ravel_nd(
+                edges.reshape(-1, 4), self.edge_shape
+            ).reshape(-1, 12)
         return edges
 
 
@@ -132,6 +134,10 @@ if __name__ == "__main__":
     top = VoxelTopology((2, 2, 2))
 
     xyz = np.zeros((4, 4, 4), dtype=np.int32)
+
+    print(top.unravel_nd([0, 1, 2, 3], top.edge_shape))
+
+    print(top.find_edge_vertices([0, 1, 2, 3], ravel=False))
 
     sijk, tijk = top.find_edge_vertices(top.edge_ids, ravel=False)
     si, sj, sk = sijk.T
@@ -157,6 +163,9 @@ if __name__ == "__main__":
     xyz[vi, vj, vk] = 1
 
     print(np.flip(xyz.transpose((2, 1, 0)), 1))
+
+    print(top.find_voxel_edges([[1, 1, 1]], ravel=False))
+
     # print(xyz.transpose((2, 0, 1)))
     # print(xyz.transpose((2, 0, 1)))
 

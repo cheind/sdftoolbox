@@ -1,5 +1,6 @@
 import numpy as np
-from .topology import VolumeTopology
+from .topology import VolumeTopology2, VolumeTopology3
+from .topology2 import VoxelTopology
 
 VOXEL_EDGES = np.array(
     (
@@ -47,8 +48,12 @@ def surface_net(
     for eidx, (source_offset, target_offset) in enumerate(VOXEL_EDGES):
         sidx = voxids + source_offset
         tidx = voxids + target_offset
-        edge_sdfs[..., eidx, 0] = sdf_values[sidx[..., 0], sidx[..., 1], sidx[..., 2]]
-        edge_sdfs[..., eidx, 1] = sdf_values[tidx[..., 0], tidx[..., 1], tidx[..., 2]]
+        edge_sdfs[..., eidx, 0] = sdf_values[
+            sidx[..., 0], sidx[..., 1], sidx[..., 2]
+        ]
+        edge_sdfs[..., eidx, 1] = sdf_values[
+            tidx[..., 0], tidx[..., 1], tidx[..., 2]
+        ]
 
     # Find the voxels through which the surface passes.
     # We do this by finding voxels that have at least one SDF corner value
@@ -86,10 +91,14 @@ def surface_net(
 
         # Compute all the start/end vertices for each selected edge
         vsource = xyz[
-            x + source_offsets[:, 0], y + source_offsets[:, 1], z + source_offsets[:, 2]
+            x + source_offsets[:, 0],
+            y + source_offsets[:, 1],
+            z + source_offsets[:, 2],
         ]
         vtarget = xyz[
-            x + target_offsets[:, 0], y + target_offsets[:, 1], z + target_offsets[:, 2]
+            x + target_offsets[:, 0],
+            y + target_offsets[:, 1],
+            z + target_offsets[:, 2],
         ]
         # Find the intersection points using linear interpolation
         isects = (1 - t[:, None]) * vsource + t[:, None] * vtarget
@@ -98,7 +107,9 @@ def surface_net(
         edge_isects[x, y, z, e] = isects
         num_edges = selected_edges.sum(-1, keepdims=True)
         # Compute vertex locations as mean over voxel edge intersection points
-        verts = edge_isects[selected_voxels].sum(-2) / num_edges[selected_voxels]
+        verts = (
+            edge_isects[selected_voxels].sum(-2) / num_edges[selected_voxels]
+        )
         return verts
 
     return verts
@@ -116,34 +127,74 @@ def surface_net2(
         xyz: (X,Y,Z,3) array of sampling locations
 
     """
+    assert vertex_placement_mode in ["midpoint", "naive"]
+    spacing = np.asarray(spacing, dtype=np.float32)
 
-    top = VolumeTopology(sdf_values.shape)
+    top = VolumeTopology2(sdf_values.shape)
+    ravelled_sdf = sdf_values.reshape(-1)
 
     # Compute the set of active edges, which are those edges that
     # cross the surface boundary.
-
-    sidx = top.edge_sources(top.edge_indices)
-    tidx = top.edge_targets(top.edge_indices)
-
-    sign_sdf = np.sign(sdf_values)
-    active_mask = (
-        sign_sdf[sidx[..., 0], sidx[..., 1], sidx[..., 2]]
-        != sign_sdf[tidx[..., 0], tidx[..., 1], tidx[..., 2]]
+    sdf_signs = np.sign(ravelled_sdf)
+    sidx, tidx = top.edge_endpoints(
+        top.edges[top.valid_edge_mask], return_ravelled=True
     )
-    active_edges = top.edge_indices[active_mask]
+    active_mask = np.zeros(len(top.edges), dtype=bool)
+    active_mask[top.valid_edge_mask] = sdf_signs[sidx] != sdf_signs[tidx]
+    active_edges = top.edges[active_mask]
 
-    # Compute the intersection points within those voxels that
+    # Compute the intersection points (vertices) for those voxels that
     # share at least one active edge.
-    # TODO: contains duplicate voxels, computing intersection points
-    # more than once.
-    active_neighbors, valid_voxel_mask = top.edge_neighbors(active_edges)
+    active_quads = top.edge_neighbors(active_edges)
+    active_voxels = np.unique(active_quads.reshape(-1))
 
-    active_neighbors_flat = active_neighbors.reshape(-1, 3)
-    valid_mask_flat = valid_voxel_mask.reshape(-1)
+    if vertex_placement_mode == "midpoint":
+        active_ijk = top.unravel_nd(active_voxels, top.voxel_shape)
+        verts = active_ijk * spacing[None, :] + spacing[None, :] * 0.5
+        return verts
+    elif vertex_placement_mode == "naive":
+        # Compute parametric interpolation value surface boundary
+        # crossing edges, assuming surfaces are linear close to edges.
+        t = -ravelled_sdf[sidx] / (ravelled_sdf[tidx] - ravelled_sdf[sidx])
+        sijk = top.unravel_nd(sidx, top.sample_shape)
+        tijk = top.unravel_nd(tidx, top.sample_shape)
+        # Find the edge intersection points along the edge using
+        # linear interpolation just like in MC.
+        edge_isects = (1 - t[:, None]) * sijk + t[:, None] * tijk
+        print(len(edge_isects))
 
-    active_voxels = top.unique_voxels(active_neighbors_flat[valid_mask_flat])
+        # For all active voxels, we compute the 12 edges constructing it
+        voxel_edges = top.voxel_edges(active_voxels)
 
-    print(len(active_voxels))
+        # To compute the vertices, we average
+
+    #
+    #     active_voxel_edges = top.voxel_edges(active_voxels)  # (A,12,4)
+
+    #     #     isects = (1 - t[:, None]) * vsource + t[:, None] * vtarget
+    #     print(active_voxel_edges.shape)
+
+    #    t = -edge_sdfs[x, y, z, e, 0] / (
+    #         edge_sdfs[x, y, z, e, 1] - edge_sdfs[x, y, z, e, 0]
+    #     )
+    #     source_offsets = VOXEL_EDGES[e, 0]
+    #     target_offsets = VOXEL_EDGES[e, 1]
+
+    #     # Compute all the start/end vertices for each selected edge
+    #     vsource = xyz[
+    #         x + source_offsets[:, 0], y + source_offsets[:, 1], z + source_offsets[:, 2]
+    #     ]
+    #     vtarget = xyz[
+    #         x + target_offsets[:, 0], y + target_offsets[:, 1], z + target_offsets[:, 2]
+    #     ]
+    #     # Find the intersection points using linear interpolation
+    #     isects = (1 - t[:, None]) * vsource + t[:, None] * vtarget
+
+    #     # Write back to dense array for accumulation
+    #     edge_isects[x, y, z, e] = isects
+    #     num_edges = selected_edges.sum(-1, keepdims=True)
+    #     # Compute vertex locations as mean over voxel edge intersection points
+    #     verts = edge_isects[selected_voxels].sum(-2) / num_edges[selected_voxels]
 
     # print(sum(active_mask))
 
@@ -218,6 +269,60 @@ def surface_net2(
     # return verts
 
 
+def surface_net3(
+    sdf_values: np.ndarray,
+    spacing: tuple[float, float, float],
+    vertex_placement_mode="midpoint",
+):
+    """Generate surface net triangulation
+
+    Params
+        sdf_values: (I,J,K) array if SDF values at sample locations
+
+    """
+    assert vertex_placement_mode in ["midpoint", "naive"]
+    spacing = np.asarray(spacing, dtype=np.float32)
+
+    top = VoxelTopology(sdf_values.shape)
+
+    sdf_values = np.pad(sdf_values, ((1, 1), (1, 1), (1, 1)), mode="edge")
+
+    sijk, tijk = top.find_edge_vertices(top.edge_ids, ravel=False)
+    # active_edge_mask = sdf_signs[si, sj, sk] != sdf_signs[ti, tj, tk]
+
+    si, sj, sk = sijk.T
+    ti, tj, tk = tijk.T
+
+    # Find the edge intersection points along the edge using
+    # linear interpolation just like in MC.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        t = -sdf_values[si, sj, sk] / (
+            sdf_values[ti, tj, tk] - sdf_values[si, sj, sk]
+        )
+    active_edge_mask = np.logical_and(t >= 0, t <= 1.0)
+    print(np.sum(active_edge_mask))
+    t[~active_edge_mask] = np.nan
+
+    # tr = t[np.isfinite(t)]
+    # plt.figure()
+    # plt.hist(tr, bins=100)
+    # plt.show()
+
+    edge_isect = (1 - t[:, None]) * sijk + t[:, None] * tijk
+
+    active_edges = top.edge_ids[active_edge_mask]
+    active_quads = top.find_voxels_sharing_edge(active_edges)
+    active_voxels = np.unique(active_quads)
+
+    # verts = np.zeros(top.ext_sample_shape + (3,), dtype=np.float32)
+    active_voxel_edges = top.find_voxel_edges(active_voxels)
+    print(active_voxel_edges.shape, edge_isect.shape)
+
+    e = edge_isect[active_voxel_edges.reshape(-1)].reshape(-1, 12, 3)
+    verts = np.nanmean(e, 1) * spacing - spacing
+    return verts
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from skimage.measure import marching_cubes
@@ -234,7 +339,7 @@ if __name__ == "__main__":
         np.linspace(min_corner[2], max_corner[2], res[2], dtype=np.float32),
     ]
 
-    X, Y, Z = np.meshgrid(*ranges)
+    X, Y, Z = np.meshgrid(*ranges, indexing="ij")
     xyz = np.stack((X, Y, Z), -1)
     spacing = (
         ranges[0][1] - ranges[0][0],
@@ -248,8 +353,14 @@ if __name__ == "__main__":
     # verts, faces, normals, _ = marching_cubes(values, 0.0, spacing=spacing)
     # verts += min_corner[None, :]
 
-    # fig, ax = plots.create_figure()
-    # # plots.plot_mesh(verts, faces, ax)
+    fig, ax = plots.create_figure()
+    # plots.plot_mesh(verts, faces, ax)
+
+    t0 = time.perf_counter()
+    verts = surface_net3(s1(xyz), spacing, vertex_placement_mode="naive")
+    verts += min_corner[None, :]
+    ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], s=5)
+    print("Surface-nets took", time.perf_counter() - t0, "secs")
 
     # t0 = time.perf_counter()
     # verts = surface_net(s1(xyz), xyz, vertex_placement_mode="naive")
@@ -259,9 +370,5 @@ if __name__ == "__main__":
     # verts = surface_net(s1(xyz), xyz, vertex_placement_mode="midpoint")
     # ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], s=5)
 
-    # plots.setup_axes(ax, min_corner, max_corner)
-    # plt.show()
-
-    t0 = time.perf_counter()
-    surface_net2(s1(xyz), spacing, vertex_placement_mode="naive")
-    print("Surface-nets took", time.perf_counter() - t0, "secs")
+    plots.setup_axes(ax, min_corner, max_corner)
+    plt.show()

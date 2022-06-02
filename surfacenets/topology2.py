@@ -23,25 +23,26 @@ class VoxelTopology:
         dtype=np.int32,
     ).reshape(1, 12, 4)
 
+    # ccw along +edge dir, always starting at max voxel
     EDGE_VOXEL_OFFSETS = np.array(
         [
-            [
+            [  # k
                 [0, 0, 0],
                 [-1, 0, 0],
                 [-1, -1, 0],
                 [0, -1, 0],
             ],
-            [
+            [  # j
                 [0, 0, 0],
                 [-1, 0, 0],
                 [-1, 0, -1],
                 [0, 0, -1],
             ],
-            [
+            [  # i
                 [0, 0, 0],
-                [0, -1, 0],
-                [0, -1, -1],
                 [0, 0, -1],
+                [0, -1, -1],
+                [0, -1, 0],
             ],
         ],
         dtype=np.int32,
@@ -85,13 +86,14 @@ class VoxelTopology:
         edges = np.asarray(edges, dtype=np.int32)
         if edges.ndim == 1:
             edges = self.unravel_nd(edges, self.edge_shape)
-        voxels = edges[..., :3]
-        voxels = voxels
+        voxels = edges[..., :3] + (1, 1, 1)
         elabels = edges[..., -1]
 
         neighbors = (
             np.expand_dims(voxels, -2) + VoxelTopology.EDGE_VOXEL_OFFSETS[elabels]
         )
+        print(neighbors)
+
         if ravel:
             neighbors = self.ravel_nd(
                 neighbors.reshape(-1, 3), self.ext_sample_shape
@@ -112,10 +114,12 @@ class VoxelTopology:
             voxels = self.unravel_nd(voxels, self.ext_sample_shape)
         N = voxels.shape[0]
 
+        voxels = voxels - (1, 1, 1)
         voxels = np.expand_dims(
             np.concatenate((voxels, np.zeros((N, 1), dtype=np.int32)), -1), -2
         )
         edges = voxels + VoxelTopology.VOXEL_EDGE_OFFSETS
+        print(edges)
         if ravel:
             edges = self.ravel_nd(edges.reshape(-1, 4), self.edge_shape).reshape(-1, 12)
         return edges

@@ -5,7 +5,6 @@ import numpy as np
 from . import plotting
 
 from .topology import VoxelTopology
-from .utils import print_volume_slices
 
 
 def surface_nets(
@@ -82,7 +81,7 @@ if __name__ == "__main__":
 
     from . import sdfs
 
-    res = (30, 30, 30)
+    res = (60, 60, 60)
     min_corner = np.array([-2.0] * 3, dtype=np.float32)
     max_corner = np.array([2.0] * 3, dtype=np.float32)
 
@@ -102,12 +101,12 @@ if __name__ == "__main__":
 
     s = sdfs.Sphere.create([0, 0, 0], 1.0)
     # s = sdfs.Repetition(s, periods=(1.0, 1.0, 1.0), reps=(3, 4, 5))
-    s = sdfs.Displacement(s, lambda xyz: 0.3 * np.sin(10 * xyz).prod(-1))
+    # s = sdfs.Displacement(s, lambda xyz: 0.3 * np.sin(10 * xyz).prod(-1))
 
     # s1 = sdfs.Plane.create([0.01, 0.01, 0.01], [1.0, 0.0, 0.0])
     # s = s1
-    s2 = sdfs.Sphere.create([1.5, 0.0, 0.0], 1.0)
-    s = s.merge(s2, alpha=2)
+    # s2 = sdfs.Sphere.create([1.5, 0.0, 0.0], 1.0)
+    # s = s.merge(s2, alpha=2)
 
     # verts, faces, normals, _ = marching_cubes(values, 0.0, spacing=spacing)
     # verts += min_corner[None, :]
@@ -120,9 +119,12 @@ if __name__ == "__main__":
 
     t0 = time.perf_counter()
     verts, faces = surface_nets(
-        sdf, spacing, vertex_placement_mode="naive", triangulate=False
+        sdf, spacing, vertex_placement_mode="naive", triangulate=True
     )
     verts += min_corner[None, :]
+    from .io import export_stl
+
+    export_stl("test.stl", verts, faces)
     print("Surface-nets took", time.perf_counter() - t0, "secs")
 
     plt.style.use("dark_background")

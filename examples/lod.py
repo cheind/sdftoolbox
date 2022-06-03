@@ -12,23 +12,26 @@ def main():
     # Setup the scene
     scene = sn.sdfs.Sphere.create(center=(0, 0, 0), radius=1.0)
 
-    fig, ax = sn.plotting.create_figure(fig_aspect=9 / 16, proj_type="ortho")
+    fig, ax = sn.plotting.create_figure(fig_aspect=9 / 16, proj_type="persp")
 
     max_corner = np.array([-np.inf, -np.inf, -np.inf])
     min_corner = np.array([np.inf, np.inf, np.inf])
 
-    for idx, res in enumerate([3, 5, 10, 20]):
-        # Define the sampling locations. Here we use the default params
-        xyz, spacing = sn.sample_volume(
-            res=(res, res, res),
-            min_corner=(-1, -1, -1),
-            max_corner=(1, 1, 1),
-        )
-        sdfv = scene.sample(xyz)
+    # Note, the resolution is chosen such that stepping in powers of 2
+    # always contains the endpoint. This is important, since the sampling
+    # bounds are close the surface of the sphere.
+    xyz, spacing = sn.sample_volume(
+        res=(65, 65, 65),
+        min_corner=(-1.1, -1.1, -1.1),
+        max_corner=(1.1, 1.1, 1.1),
+    )
+    sdfv = scene.sample(xyz)
 
+    for idx in range(1, 6):
+        step = 2**idx
         verts, faces = sn.surface_nets(
-            sdfv,
-            spacing=spacing,
+            sdfv[::step, ::step, ::step],
+            spacing=spacing * step,
             vertex_placement_mode="naive",
             triangulate=False,
         )

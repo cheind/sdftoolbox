@@ -8,6 +8,8 @@ This repository contains a pure vectorized Python implementation of (naive) Surf
 
 The above image shows two reconstructions of a sphere superimposed by waves. The reconstruction on the left uses SurfaceNets from this library, the right side shows a Marching Cubes mesh generated using scikit-image.
 
+See [examples/compare.py](examples/compare.py) for details.
+
 ## Features
 
 -   A vectorized SurfaceNets method
@@ -64,5 +66,3 @@ pip install git+https://github.com/cheind/sdf-surfacenets#egg=sdf-surfacenets[de
 -   Gibson, S. F. F. (1999). Constrained elastic surfacenets: Generating smooth models from binary segmented data. TR99, 24.
 -   Naive SurfaceNets: https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/
 -   Signed Distance Fields: https://iquilezles.org/articles/distfunctions/
-
-Basic isosurface extraction from signed distance functions using naive surface nets in Python

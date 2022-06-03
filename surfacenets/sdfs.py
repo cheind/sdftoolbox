@@ -146,6 +146,35 @@ class Displacement(SDF):
         return node_values + disp_values
 
 
+class Repetition(SDF):
+    def __init__(
+        self,
+        node: SDF,
+        periods: tuple[float, float, float] = (1, 1, 1),
+        reps: tuple[int, int, int] = None,
+    ) -> None:
+        self.periods = np.array(periods).reshape(1, 1, 1, 3)
+        self.node = node
+        if reps is not None:
+            self.reps = np.array(reps).reshape(1, 1, 1, 3)
+            self.sample = self._repeat_finite
+        else:
+            self.sample = self._repeat_infinite
+
+    def sample(self, x: np.ndarray) -> np.ndarray:
+        pass  # set via init
+
+    def _repeat_infinite(self, x: np.ndarray) -> np.ndarray:
+        x = np.mod(x + 0.5 * self.periods, self.periods) - 0.5 * self.periods
+        return self.node.sample(x)
+
+    def _repeat_finite(self, x: np.ndarray) -> np.ndarray:
+        x = x - self.periods * np.clip(
+            np.round(x / self.periods), 0, self.reps - 1
+        )
+        return self.node.sample(x)
+
+
 class Sphere(Transform):
     """The SDF of a sphere"""
 

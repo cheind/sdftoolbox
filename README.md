@@ -6,6 +6,8 @@ This repository contains a pure vectorized Python implementation of (naive) Surf
 <img src="doc/surfacenets.svg">
 </div>
 
+The above image shows two reconstructions of a sphere superimposed by waves. The reconstruction on the left uses SurfaceNets from this library, the right side shows a Marching Cubes mesh generated using scikit-image.
+
 ## Example Code
 
 ```python

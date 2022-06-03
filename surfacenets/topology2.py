@@ -10,14 +10,14 @@ class VoxelTopology:
             [0, 0, 0, 0],
             [0, 0, 0, 1],
             [0, 0, 0, 2],
-            [1, 0, 0, 0],
             [1, 0, 0, 1],
+            [1, 0, 0, 2],
             [0, 1, 0, 0],
             [0, 1, 0, 2],
-            [0, 0, 1, 2],
+            [0, 0, 1, 0],
             [0, 0, 1, 1],
-            [1, 1, 0, 0],
-            [0, 1, 1, 2],
+            [1, 1, 0, 2],
+            [0, 1, 1, 0],
             [1, 0, 1, 1],
         ],
         dtype=np.int32,
@@ -26,10 +26,10 @@ class VoxelTopology:
     # ccw along +edge dir, always starting at max voxel
     EDGE_VOXEL_OFFSETS = np.array(
         [
-            [  # k
+            [  # i
                 [0, 0, 0],
-                [-1, 0, 0],
-                [-1, -1, 0],
+                [0, 0, -1],
+                [0, -1, -1],
                 [0, -1, 0],
             ],
             [  # j
@@ -38,29 +38,37 @@ class VoxelTopology:
                 [-1, 0, -1],
                 [0, 0, -1],
             ],
-            [  # i
+            [  # k
                 [0, 0, 0],
-                [0, 0, -1],
-                [0, -1, -1],
+                [-1, 0, 0],
+                [-1, -1, 0],
                 [0, -1, 0],
             ],
         ],
         dtype=np.int32,
     )
 
-    def __init__(self, sample_shape: tuple[int, int, int]) -> None:
-        self.edge_shape = sample_shape + (3,)
-        self.ext_sample_shape = (
-            sample_shape[0] + 2,
-            sample_shape[1] + 2,
-            sample_shape[2] + 2,
+    def __init__(
+        self, sample_shape: tuple[int, int, int], padding: int = 1
+    ) -> None:
+        self.sample_shape = sample_shape
+        self.padding = padding
+        self.edge_shape = (
+            sample_shape[0] - padding,
+            sample_shape[1] - padding,
+            sample_shape[2] - padding,
+            3,
         )
         self.num_edges = np.prod(self.edge_shape)
 
-    def ravel_nd(self, nd_indices: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
+    def ravel_nd(
+        self, nd_indices: np.ndarray, shape: tuple[int, ...]
+    ) -> np.ndarray:
         return np.ravel_multi_index(list(nd_indices.T), dims=shape)
 
-    def unravel_nd(self, indices: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
+    def unravel_nd(
+        self, indices: np.ndarray, shape: tuple[int, ...]
+    ) -> np.ndarray:
         ur = np.unravel_index(indices, shape)
         return np.stack(ur, -1)
 
@@ -72,11 +80,10 @@ class VoxelTopology:
             edges = self.unravel_nd(edges, self.edge_shape)
         offs = np.eye(3, dtype=np.int32)
         src = edges[..., :3]
-        src = src + (1, 1, 1)
         dst = src + offs[edges[..., -1]]
         if ravel:
-            src = self.ravel_nd(src, self.ext_sample_shape)
-            dst = self.ravel_nd(dst, self.ext_sample_shape)
+            src = self.ravel_nd(src, self.sample_shape)
+            dst = self.ravel_nd(dst, self.sample_shape)
         return src, dst
 
     def find_voxels_sharing_edge(
@@ -86,21 +93,29 @@ class VoxelTopology:
         edges = np.asarray(edges, dtype=np.int32)
         if edges.ndim == 1:
             edges = self.unravel_nd(edges, self.edge_shape)
-        voxels = edges[..., :3] + (1, 1, 1)
+        voxels = edges[..., :3]
         elabels = edges[..., -1]
 
         neighbors = (
-            np.expand_dims(voxels, -2) + VoxelTopology.EDGE_VOXEL_OFFSETS[elabels]
+            np.expand_dims(voxels, -2)
+            + VoxelTopology.EDGE_VOXEL_OFFSETS[elabels]
+        )  # (N,4,3)
+
+        mask = (neighbors >= self.padding) & (
+            neighbors < np.array(self.sample_shape) - 2 * self.padding
         )
-        print(neighbors)
+        mask = mask.all(-1).all(-1)
+        neighbors = neighbors[mask]
 
         if ravel:
             neighbors = self.ravel_nd(
-                neighbors.reshape(-1, 3), self.ext_sample_shape
+                neighbors.reshape(-1, 3), self.sample_shape
             ).reshape(-1, 4)
         return neighbors
 
-    def find_voxel_edges(self, voxels: np.ndarray, ravel: bool = True) -> np.ndarray:
+    def find_voxel_edges(
+        self, voxels: np.ndarray, ravel: bool = True
+    ) -> np.ndarray:
         """Returns all edges for the given voxels
 
         Params:
@@ -111,17 +126,17 @@ class VoxelTopology:
         """
         voxels = np.asarray(voxels, dtype=np.int32)
         if voxels.ndim == 1:
-            voxels = self.unravel_nd(voxels, self.ext_sample_shape)
+            voxels = self.unravel_nd(voxels, self.sample_shape)
         N = voxels.shape[0]
 
-        voxels = voxels - (1, 1, 1)
         voxels = np.expand_dims(
             np.concatenate((voxels, np.zeros((N, 1), dtype=np.int32)), -1), -2
         )
         edges = voxels + VoxelTopology.VOXEL_EDGE_OFFSETS
-        print(edges)
         if ravel:
-            edges = self.ravel_nd(edges.reshape(-1, 4), self.edge_shape).reshape(-1, 12)
+            edges = self.ravel_nd(
+                edges.reshape(-1, 4), self.edge_shape
+            ).reshape(-1, 12)
         return edges
 
 
@@ -150,7 +165,9 @@ if __name__ == "__main__":
 
     print(np.flip(xyz.transpose((2, 1, 0)), 1))
 
-    vijk = top.find_voxels_sharing_edge(top.edge_ids, ravel=False).reshape(-1, 3)
+    vijk = top.find_voxels_sharing_edge(top.edge_ids, ravel=False).reshape(
+        -1, 3
+    )
     vi, vj, vk = vijk.T
     xyz[:] = 0
     xyz[vi, vj, vk] = 1

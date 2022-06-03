@@ -104,8 +104,8 @@ if __name__ == "__main__":
 
     # s1 = sdfs.Plane.create([0.01, 0.01, 0.01], [1.0, 0.0, 0.0])
     # s = s1
-    # s2 = sdfs.Sphere([0.8, 0.0, 0.0], 1.0)
-    # s = s1.subtract(s2, alpha=2)
+    s2 = sdfs.Sphere.create([1.5, 0.0, 0.0], 1.0)
+    s = s.merge(s2, alpha=2)
 
     # verts, faces, normals, _ = marching_cubes(values, 0.0, spacing=spacing)
     # verts += min_corner[None, :]
@@ -114,12 +114,11 @@ if __name__ == "__main__":
 
     t0 = time.perf_counter()
     sdf = s(xyz)
-    print_volume_slices(sdf)
     print("SDF sampling took", time.perf_counter() - t0, "secs")
 
     t0 = time.perf_counter()
     verts, faces = surface_nets(
-        sdf, spacing, vertex_placement_mode="naive", triangulate=True
+        sdf, spacing, vertex_placement_mode="naive", triangulate=False
     )
     verts += min_corner[None, :]
     print("Surface-nets took", time.perf_counter() - t0, "secs")

@@ -1,12 +1,21 @@
 # sdf-surfacenets
 
-This repository contains a pure vectorized Python implementation of (naive) SurfaceNets for the problem of isosurface extraction from signed distance fields (SDF). Additionally, we provide methods for simple construction and manipulation of SDFs.
+This repository contains a pure vectorized Python implementation of (naive) SurfaceNets for the problem of isosurface extraction from signed distance fields (SDF).
 
 <div align="center">
 <img src="doc/surfacenets.svg">
 </div>
 
 The above image shows two reconstructions of a sphere superimposed by waves. The reconstruction on the left uses SurfaceNets from this library, the right side shows a Marching Cubes mesh generated using scikit-image.
+
+## Features
+
+-   A vectorized SurfaceNets method
+-   Midpoint and naive surface point placement
+-   Quad/Triangle support
+-   Support for creating and manipulating SDFs
+-   Plotting support for reconstructed meshes
+-   Export (STL) support for reconstruted meshes
 
 ## Example Code
 

@@ -51,6 +51,14 @@ verts += xyz[0, 0, 0]
 
 See [examples/hello_surfacenets.py](examples/hello_surfacenets.py) for details.
 
+## Install
+
+Install with development extras
+
+```
+pip install git+https://github.com/cheind/sdf-surfacenets#egg=sdf-surfacenets[dev]
+```
+
 ## References
 
 -   Gibson, S. F. F. (1999). Constrained elastic surfacenets: Generating smooth models from binary segmented data. TR99, 24.

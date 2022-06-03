@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib.colors import LightSource, to_rgba
 
 
 def create_figure(
@@ -94,7 +95,9 @@ def setup_axes(
 
 
 def plot_mesh(ax, verts: np.ndarray, faces: np.ndarray):
-    mesh = Poly3DCollection(verts[faces], linewidth=0.5)
+    # Better colors? https://matplotlib.org/stable/gallery/mplot3d/voxels_rgb.html
+    # https://stackoverflow.com/questions/56864378/how-to-light-and-shade-a-poly3dcollection
+    mesh = Poly3DCollection(verts[faces], linewidth=0.2)
     mesh.set_edgecolor("w")
     ax.add_collection3d(mesh)
 

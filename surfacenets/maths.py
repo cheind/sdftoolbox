@@ -74,7 +74,7 @@ def scale(values: np.ndarray) -> np.ndarray:
 
 
 def rotate(axis: np.ndarray, angle: float) -> np.ndarray:
-    """Construct a rotation matrix around axis/angle pair."""
+    """Construct a rotation matrix given axis/angle pair."""
     axis = np.asarray(axis)
     sina = np.sin(angle)
     cosa = np.cos(angle)

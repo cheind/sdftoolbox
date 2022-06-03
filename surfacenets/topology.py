@@ -101,17 +101,18 @@ class VoxelTopology:
             + VoxelTopology.EDGE_VOXEL_OFFSETS[elabels]
         )  # (N,4,3)
 
-        mask = (neighbors >= self.padding) & (
+        edge_mask = (neighbors >= self.padding) & (
             neighbors < np.array(self.sample_shape) - 2 * self.padding
         )
-        mask = mask.all(-1).all(-1)
-        neighbors = neighbors[mask]
+        edge_mask = edge_mask.all(-1).all(
+            -1
+        )  # All edges that have 4 valid neighbors
 
         if ravel:
             neighbors = self.ravel_nd(
                 neighbors.reshape(-1, 3), self.sample_shape
             ).reshape(-1, 4)
-        return neighbors
+        return neighbors, edge_mask
 
     def find_voxel_edges(
         self, voxels: np.ndarray, ravel: bool = True

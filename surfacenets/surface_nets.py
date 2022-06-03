@@ -144,5 +144,3 @@ if __name__ == "__main__":
     plotting.setup_axes(ax0, min_corner, max_corner)
     plotting.setup_axes(ax1, min_corner, max_corner)
     plt.show()
-
-    # https://stackoverflow.com/questions/68158722/surface-nets-triangle-meshing-original-paper-vs-popular-variant

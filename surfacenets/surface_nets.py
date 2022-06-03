@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     from . import plots, sdfs
 
-    res = (40, 40, 40)
+    res = (30, 30, 30)
     min_corner = np.array([-2.0] * 3, dtype=np.float32)
     max_corner = np.array([2.0] * 3, dtype=np.float32)
 
@@ -98,8 +98,9 @@ if __name__ == "__main__":
         ranges[2][1] - ranges[2][0],
     )
 
-    s = sdfs.Sphere.create([0.0, 0.0, 0.0], 1.0)
-    # s = sdfs.Displacement(s, lambda xyz: 0.3 * np.sin(10 * xyz).prod(-1))
+    s = sdfs.Sphere.create([0, 0, 0], 1.0)
+    # s = sdfs.Repetition(s, periods=(1.0, 1.0, 1.0), reps=(3, 4, 5))
+    s = sdfs.Displacement(s, lambda xyz: 0.3 * np.sin(10 * xyz).prod(-1))
 
     # s1 = sdfs.Plane.create([0.01, 0.01, 0.01], [1.0, 0.0, 0.0])
     # s = s1
@@ -109,7 +110,6 @@ if __name__ == "__main__":
     # verts, faces, normals, _ = marching_cubes(values, 0.0, spacing=spacing)
     # verts += min_corner[None, :]
 
-    fig, ax = plots.create_figure()
     # plots.plot_mesh(verts, faces, ax)
 
     t0 = time.perf_counter()
@@ -119,26 +119,28 @@ if __name__ == "__main__":
 
     t0 = time.perf_counter()
     verts, faces = surface_nets(
-        sdf, spacing, vertex_placement_mode="naive", triangulate=False
+        sdf, spacing, vertex_placement_mode="naive", triangulate=True
     )
     verts += min_corner[None, :]
-    # print(verts)
-    # print(faces)
-    # print(verts[faces])
     print("Surface-nets took", time.perf_counter() - t0, "secs")
 
-    # t0 = time.perf_counter()
-    # verts = surface_net(s1(xyz), xyz, vertex_placement_mode="naive")
-    # ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], s=5)
-    # print("Surface-nets took", time.perf_counter() - t0, "secs")
-
-    # verts = surface_net(s1(xyz), xyz, vertex_placement_mode="midpoint")
-    # ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], s=5)
-
+    plt.style.use("dark_background")
+    fig, (ax0, ax1) = plots.create_split_figure()
     mesh = Poly3DCollection(verts[faces], linewidth=0.5)
     mesh.set_edgecolor("w")
-    ax.add_collection3d(mesh)
-    # ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], s=3, color="magenta")
+    ax0.add_collection3d(mesh)
 
-    plots.setup_axes(ax, min_corner, max_corner)
+    verts, faces, normals, _ = marching_cubes(sdf, 0.0, spacing=spacing)
+    verts += min_corner[None, :]
+    mesh = Poly3DCollection(verts[faces], linewidth=0.5)
+    mesh.set_edgecolor("w")
+    ax1.add_collection3d(mesh)
+
+    ax0.set_title("SurfaceNets")
+    ax1.set_title("MarchingCubes")
+
+    plots.setup_axes(ax0, min_corner, max_corner)
+    plots.setup_axes(ax1, min_corner, max_corner)
     plt.show()
+
+    # https://stackoverflow.com/questions/68158722/surface-nets-triangle-meshing-original-paper-vs-popular-variant

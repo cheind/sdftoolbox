@@ -24,7 +24,10 @@ def main():
 
     # Extract the surface using quadliterals
     verts, faces = sn.surface_nets(
-        sdfv, spacing=spacing, vertex_placement_mode="naive", triangulate=False
+        sdfv,
+        spacing=spacing,
+        vertex_placement_mode="naive",
+        triangulate=False,
     )
     verts += xyz[0, 0, 0]
 

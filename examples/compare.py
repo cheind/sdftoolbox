@@ -55,6 +55,9 @@ def main():
     sn.plotting.plot_mesh(ax1, verts_mc, faces_mc)
     sn.plotting.setup_axes(ax0, minc, maxc)
     sn.plotting.setup_axes(ax1, minc, maxc)
+    ax0.set_title("SurfaceNets")
+    ax1.set_title("Marching Cubes")
+    plt.tight_layout()
     plt.show()
 
 

@@ -1,8 +1,9 @@
 from typing import Literal
+
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.ticker import MaxNLocator
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def create_figure(proj_type: Literal["persp", "ortho"] = "persp"):
@@ -49,23 +50,6 @@ def create_split_figure(
     return fig, (ax0, ax1)
 
 
-class Arrow3D(FancyArrowPatch):
-    """Draw an arrow in 3D.
-
-    https://stackoverflow.com/questions/11140163
-    """
-
-    def __init__(self, xs, ys, zs, *args, **kwargs):
-        FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-        self._verts3d = xs, ys, zs
-
-    def draw(self, renderer):
-        xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
-        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-        FancyArrowPatch.draw(self, renderer)
-
-
 def setup_axes(
     ax,
     min_corner,
@@ -97,3 +81,19 @@ def setup_axes(
     if num_grid == 0:
         ax.grid(False)
     ax.view_init(elev=elevation, azim=azimuth)
+
+
+def plot_mesh(ax, verts: np.ndarray, faces: np.ndarray):
+    mesh = Poly3DCollection(verts[faces], linewidth=0.5)
+    mesh.set_edgecolor("w")
+    ax.add_collection3d(mesh)
+
+
+def create_mesh_figure(verts: np.ndarray, faces: np.ndarray):
+    min_corner = verts.min(0)
+    max_corner = verts.max(0)
+
+    fig, ax = create_figure()
+    plot_mesh(ax, verts, faces)
+    setup_axes(ax, min_corner, max_corner)
+    return fig, ax

@@ -2,6 +2,8 @@ from typing import Literal
 
 import numpy as np
 
+from . import plotting
+
 from .topology import VoxelTopology
 from .utils import print_volume_slices
 
@@ -78,7 +80,7 @@ if __name__ == "__main__":
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
     from skimage.measure import marching_cubes
 
-    from . import plots, sdfs
+    from . import sdfs
 
     res = (30, 30, 30)
     min_corner = np.array([-2.0] * 3, dtype=np.float32)
@@ -124,7 +126,7 @@ if __name__ == "__main__":
     print("Surface-nets took", time.perf_counter() - t0, "secs")
 
     plt.style.use("dark_background")
-    fig, (ax0, ax1) = plots.create_split_figure()
+    fig, (ax0, ax1) = plotting.create_split_figure()
     mesh = Poly3DCollection(verts[faces], linewidth=0.5)
     mesh.set_edgecolor("w")
     ax0.add_collection3d(mesh)
@@ -138,8 +140,8 @@ if __name__ == "__main__":
     ax0.set_title("SurfaceNets")
     ax1.set_title("MarchingCubes")
 
-    plots.setup_axes(ax0, min_corner, max_corner)
-    plots.setup_axes(ax1, min_corner, max_corner)
+    plotting.setup_axes(ax0, min_corner, max_corner)
+    plotting.setup_axes(ax1, min_corner, max_corner)
     plt.show()
 
     # https://stackoverflow.com/questions/68158722/surface-nets-triangle-meshing-original-paper-vs-popular-variant

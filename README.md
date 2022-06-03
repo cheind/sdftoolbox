@@ -3,7 +3,7 @@
 This repository contains a pure vectorized Python implementation of (naive) SurfaceNets for the problem of isosurface extraction from signed distance fields (SDF). Additionally, we provide methods for simple construction and manipulation of SDFs.
 
 <div align="center">
-<img src="doc/surfacenets.png">
+<img src="doc/surfacenets.svg">
 </div>
 
 ## Example Code

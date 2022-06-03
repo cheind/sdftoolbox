@@ -6,9 +6,16 @@ from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
-def create_figure(proj_type: Literal["persp", "ortho"] = "persp"):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d", proj_type=proj_type)
+def create_figure(
+    proj_type: Literal["persp", "ortho"] = "persp",
+    fig_aspect: float = 1,
+):
+    fig = plt.figure(figsize=plt.figaspect(fig_aspect))
+    ax = fig.add_subplot(
+        111,
+        projection="3d",
+    )
+    ax.set_proj_type(proj_type)
     return fig, ax
 
 
@@ -62,9 +69,13 @@ def setup_axes(
     ax.set_xlim(min_corner[0], max_corner[0])
     ax.set_ylim(min_corner[1], max_corner[1])
     ax.set_zlim(min_corner[2], max_corner[2])
-    ax.xaxis.set_major_locator(MaxNLocator(num_grid))
-    ax.yaxis.set_major_locator(MaxNLocator(num_grid))
-    ax.zaxis.set_major_locator(MaxNLocator(num_grid))
+    if num_grid > 0:
+        ax.xaxis.set_major_locator(MaxNLocator(num_grid))
+        ax.yaxis.set_major_locator(MaxNLocator(num_grid))
+        ax.zaxis.set_major_locator(MaxNLocator(num_grid))
+    else:
+        ax.grid(False)
+        ax.set_axis_off()
     ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
     ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -78,8 +89,6 @@ def setup_axes(
             max_corner[2] - min_corner[2],
         )
     )
-    if num_grid == 0:
-        ax.grid(False)
     ax.view_init(elev=elevation, azim=azimuth)
 
 

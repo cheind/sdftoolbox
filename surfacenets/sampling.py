@@ -26,9 +26,12 @@ def sample_volume(
 
     X, Y, Z = np.meshgrid(*ranges, indexing="ij")
     xyz = np.stack((X, Y, Z), -1)
-    spacing = (
-        ranges[0][1] - ranges[0][0],
-        ranges[1][1] - ranges[1][0],
-        ranges[2][1] - ranges[2][0],
+    spacing = np.array(
+        [
+            ranges[0][1] - ranges[0][0],
+            ranges[1][1] - ranges[1][0],
+            ranges[2][1] - ranges[2][0],
+        ],
+        dtype=dtype,
     )
     return xyz, spacing

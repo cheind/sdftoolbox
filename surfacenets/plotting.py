@@ -90,6 +90,7 @@ def setup_axes(
         )
     )
     ax.view_init(elev=elevation, azim=azimuth)
+    # https://github.com/matplotlib/matplotlib/blob/v3.5.0/lib/mpl_toolkits/mplot3d/axes3d.py#L1460-L1499
 
 
 def plot_mesh(ax, verts: np.ndarray, faces: np.ndarray):

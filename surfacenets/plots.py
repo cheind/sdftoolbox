@@ -48,11 +48,11 @@ def setup_axes(
     ax,
     min_corner,
     max_corner,
-    azimuth: float = 45,
+    azimuth: float = -139,
     elevation: float = 35,
     num_grid: int = 3,
 ):
-    ax.view_init(elev=elevation, azim=azimuth)
+
     ax.set_xlim(min_corner[0], max_corner[0])
     ax.set_ylim(min_corner[1], max_corner[1])
     ax.set_zlim(min_corner[2], max_corner[2])
@@ -72,3 +72,4 @@ def setup_axes(
             max_corner[2] - min_corner[2],
         )
     )
+    ax.view_init(elev=elevation, azim=azimuth)

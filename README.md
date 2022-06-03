@@ -24,7 +24,7 @@ scene = sn.sdfs.Union(
     alpha=8,
 )
 
-# Define the sampling locations. Here we use the default params
+# Get some sampling locations
 xyz, spacing = sn.sample_volume()
 
 # Evaluate the SDF

@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     from . import plots, sdfs
 
-    res = (3, 3, 3)
+    res = (40, 40, 40)
     min_corner = np.array([-2.0] * 3, dtype=np.float32)
     max_corner = np.array([2.0] * 3, dtype=np.float32)
 
@@ -98,9 +98,11 @@ if __name__ == "__main__":
         ranges[2][1] - ranges[2][0],
     )
 
-    # s1 = sdfs.Sphere([0, 0.0, 0.0], 1.0)
-    s1 = sdfs.Plane([0.01, 0.01, 0.01], [0.0, -1.0, 0.0])
-    s = s1
+    s = sdfs.Sphere.create([0.0, 0.0, 0.0], 1.0)
+    # s = sdfs.Displacement(s, lambda xyz: 0.3 * np.sin(10 * xyz).prod(-1))
+
+    # s1 = sdfs.Plane.create([0.01, 0.01, 0.01], [1.0, 0.0, 0.0])
+    # s = s1
     # s2 = sdfs.Sphere([0.8, 0.0, 0.0], 1.0)
     # s = s1.subtract(s2, alpha=2)
 
@@ -119,7 +121,6 @@ if __name__ == "__main__":
     verts, faces = surface_nets(
         sdf, spacing, vertex_placement_mode="naive", triangulate=False
     )
-
     verts += min_corner[None, :]
     # print(verts)
     # print(faces)
@@ -134,10 +135,10 @@ if __name__ == "__main__":
     # verts = surface_net(s1(xyz), xyz, vertex_placement_mode="midpoint")
     # ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], s=5)
 
-    ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], s=5)
-    mesh = Poly3DCollection(verts[faces])
-    mesh.set_edgecolor("k")
+    mesh = Poly3DCollection(verts[faces], linewidth=0.5)
+    mesh.set_edgecolor("w")
     ax.add_collection3d(mesh)
+    # ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], s=3, color="magenta")
 
     plots.setup_axes(ax, min_corner, max_corner)
     plt.show()

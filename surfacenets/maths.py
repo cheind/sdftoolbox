@@ -4,7 +4,9 @@ from typing import TypeVar, Any
 ShapeLike = TypeVar("ShapeLike", bound=Any)
 
 
-def generalized_max(x: np.ndarray, axis: ShapeLike = None, alpha: float = np.inf):
+def generalized_max(
+    x: np.ndarray, axis: ShapeLike = None, alpha: float = np.inf
+):
     """Generalized maximum function.
 
     As `alpha` goes to infinity this function transforms from a smooth
@@ -68,6 +70,29 @@ def scale(values: np.ndarray) -> np.ndarray:
     """Construct and return a scaling matrix"""
     m = np.eye(4, dtype=np.float32)
     m[[0, 1, 2], [0, 1, 2]] = values
+    return m
+
+
+def rotate(axis: np.ndarray, angle: float) -> np.ndarray:
+    """Construct a rotation matrix around axis/angle pair."""
+    axis = np.asarray(axis)
+    sina = np.sin(angle)
+    cosa = np.cos(angle)
+    d = axis / np.linalg.norm(axis)
+    # rotation matrix around unit vector
+    R = np.diag([cosa, cosa, cosa])
+    R += np.outer(d, d) * (1.0 - cosa)
+    ds = d * sina
+    R += np.array(
+        [
+            [0.0, -ds[2], ds[1]],
+            [ds[2], 0.0, -ds[0]],
+            [-ds[1], ds[0], 0.0],
+        ],
+        dtype=axis.dtype,
+    )
+    m = np.eye(4, dtype=R.dtype)
+    m[:3, :3] = R
     return m
 
 

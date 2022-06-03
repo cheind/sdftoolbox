@@ -21,15 +21,3 @@ def setup_axes(ax, min_corner, max_corner):
             max_corner[2] - min_corner[2],
         )
     )
-
-
-def plot_mesh(verts, faces, ax):
-    ax.plot_trisurf(
-        verts[:, 0],
-        verts[:, 1],
-        faces,
-        verts[:, 2],
-        cmap="Spectral",
-        antialiased=True,
-        linewidth=0,
-    )

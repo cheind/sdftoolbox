@@ -3,6 +3,8 @@
 Tools to create, manipulate and sample continuous signed distance functions in 3D. 
 """
 
+from threading import stack_size
+from typing import Callable
 import numpy as np
 import abc
 
@@ -30,10 +32,14 @@ class SDF(abc.ABC):
     def merge(self, *others: list["SDF"], alpha: float = np.inf) -> "Union":
         return Union([self] + list(others), alpha=alpha)
 
-    def intersect(self, *others: list["SDF"], alpha: float = np.inf) -> "Intersection":
+    def intersect(
+        self, *others: list["SDF"], alpha: float = np.inf
+    ) -> "Intersection":
         return Intersection([self] + list(others), alpha=alpha)
 
-    def subtract(self, *others: list["SDF"], alpha: float = np.inf) -> "Difference":
+    def subtract(
+        self, *others: list["SDF"], alpha: float = np.inf
+    ) -> "Difference":
         return Difference([self] + list(others), alpha=alpha)
 
 
@@ -127,32 +133,58 @@ class Difference(SDF):
         return maths.generalized_max(values, 0, alpha=self.alpha)
 
 
+class Displacement(SDF):
+    def __init__(
+        self, node: SDF, dispfn: Callable[[np.ndarray], float]
+    ) -> None:
+        self.dispfn = dispfn
+        self.node = node
+
+    def sample(self, x: np.ndarray) -> np.ndarray:
+        node_values = self.node.sample(x)
+        disp_values = self.dispfn(x)
+        return node_values + disp_values
+
+
 class Sphere(Transform):
     """The SDF of a sphere"""
-
-    def __init__(self, center: np.ndarray, radius: float) -> None:
-        super().__init__(maths.translate(center) @ maths.scale(radius))
 
     def sample_local(self, x: np.ndarray) -> np.ndarray:
         d2 = np.square(x).sum(-1)
         return d2 - 1.0
 
+    @staticmethod
+    def create(
+        center: np.ndarray = (0.0, 0.0, 0.0),
+        radius: float = 1.0,
+    ) -> "Sphere":
+        t = maths.translate(center) @ maths.scale(radius)
+        return Sphere(t)
 
-class Plane(SDF):
-    """The SDF of plane"""
 
-    def __init__(self, origin: np.ndarray = None, normal: np.ndarray = None) -> None:
-        if origin is None:
-            origin = np.zeros(3, dtype=np.float32)
-        if normal is None:
-            normal = np.array((0.0, 1.0, 0.0), dtype=np.float32)
-        normal /= np.linalg.norm(normal, ord=2)
-        self.origin = np.asarray(origin, dtype=np.float32)
-        self.normal = np.asarray(normal, dtype=np.float32)
+class Plane(Transform):
+    def sample_local(self, x: np.ndarray) -> np.ndarray:
+        return x[..., -1]
 
-    def sample(self, x: np.ndarray) -> np.ndarray:
-        x = np.atleast_2d(x)
-        return np.dot(x - self.origin[..., :], self.normal)
+    @staticmethod
+    def create(
+        origin: np.ndarray = (0, 0, 0), normal: np.ndarray = (0, 0, 1)
+    ) -> "Plane":
+        normal = np.asarray(normal, dtype=np.float32)
+        origin = np.asarray(origin, dtype=np.float32)
+        normal /= np.linalg.norm(normal)
+        z = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        d = np.dot(z, normal)
+        if d == 1.0:
+            t = np.eye(4)
+        elif d == -1.0:
+            t = maths.rotate([1.0, 0.0, 0.0], np.pi)
+        else:
+            p = np.cross(normal, z)
+            a = np.arccos(normal[-1])
+            t = maths.rotate(p, -a)
+        t[:3, 3] = origin
+        return Plane(t)
 
 
 if __name__ == "__main__":

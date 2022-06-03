@@ -47,7 +47,7 @@ def main():
     verts_mc += xyz[0, 0, 0]
     print(f"MarchingCubes took {time.perf_counter() - t0:.3f} secs")
 
-    plt.style.use("dark_background")
+    # plt.style.use("dark_background")
     minc = verts_mc.min(0)
     maxc = verts_mc.max(0)
     fig, (ax0, ax1) = sn.plotting.create_split_figure(sync=True)
@@ -57,7 +57,7 @@ def main():
     sn.plotting.setup_axes(ax1, minc, maxc)
     ax0.set_title("SurfaceNets")
     ax1.set_title("Marching Cubes")
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.show()
 
 

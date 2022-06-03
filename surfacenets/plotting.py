@@ -1,17 +1,22 @@
+from typing import Literal
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import proj3d
 
 
-def create_figure():
+def create_figure(proj_type: Literal["persp", "ortho"] = "persp"):
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
+    ax = fig.add_subplot(111, projection="3d", proj_type=proj_type)
     return fig, ax
 
 
-def create_split_figure(sync: bool = True):
+def create_split_figure(
+    sync: bool = True, proj_type: Literal["persp", "ortho"] = "persp"
+):
     fig = plt.figure(figsize=plt.figaspect(0.5))
-    ax0 = fig.add_subplot(1, 2, 1, projection="3d")
-    ax1 = fig.add_subplot(1, 2, 2, projection="3d")
+    ax0 = fig.add_subplot(1, 2, 1, projection="3d", proj_type=proj_type)
+    ax1 = fig.add_subplot(1, 2, 2, projection="3d", proj_type=proj_type)
 
     sync_pending = False
     sync_dir = [None, None]
@@ -44,6 +49,23 @@ def create_split_figure(sync: bool = True):
     return fig, (ax0, ax1)
 
 
+class Arrow3D(FancyArrowPatch):
+    """Draw an arrow in 3D.
+
+    https://stackoverflow.com/questions/11140163
+    """
+
+    def __init__(self, xs, ys, zs, *args, **kwargs):
+        FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+        self._verts3d = xs, ys, zs
+
+    def draw(self, renderer):
+        xs3d, ys3d, zs3d = self._verts3d
+        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+        FancyArrowPatch.draw(self, renderer)
+
+
 def setup_axes(
     ax,
     min_corner,
@@ -72,4 +94,6 @@ def setup_axes(
             max_corner[2] - min_corner[2],
         )
     )
+    if num_grid == 0:
+        ax.grid(False)
     ax.view_init(elev=elevation, azim=azimuth)

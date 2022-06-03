@@ -21,7 +21,7 @@ def main():
     )
 
     # Define the sampling locations. Here we use the default params
-    xyz, spacing = sn.sample_volume()
+    xyz, spacing = sn.sample_volume(res=(60, 60, 60))
 
     # Evaluate the SDF
     t0 = time.perf_counter()

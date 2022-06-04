@@ -1,6 +1,6 @@
 """Signed distance function helpers.
 
-Tools to create, manipulate and sample continuous signed distance functions in 3D. 
+Tools to create, manipulate and sample continuous signed distance functions in 3D.
 """
 from typing import Callable
 import numpy as np

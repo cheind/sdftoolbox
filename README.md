@@ -25,7 +25,7 @@ See [examples/compare.py](examples/compare.py) for details.
 # Main import
 import surfacenets as sn
 
-# Setup the scene
+# Setup the snowman-scene
 scene = sn.sdfs.Union(
     [
         sn.sdfs.Sphere.create(center=(0, 0, 0), radius=0.5),
@@ -55,7 +55,7 @@ See [examples/hello_surfacenets.py](examples/hello_surfacenets.py) for details.
 
 ## Install
 
-Install with development extras
+Install with development extras to run all the examples.
 
 ```
 pip install git+https://github.com/cheind/sdf-surfacenets#egg=sdf-surfacenets[dev]

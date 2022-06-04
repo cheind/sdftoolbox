@@ -3,6 +3,7 @@ from typing import Literal
 import numpy as np
 
 from .topology import VoxelTopology
+import time
 
 
 def surface_nets(
@@ -40,12 +41,14 @@ def surface_nets(
 
     # First, we pad the sample volume on each side with a single (nan) value to
     # avoid having to deal with most out-of-bounds issues.
+    t0 = time.perf_counter()
     sdf_values = np.pad(
         sdf_values,
         ((1, 1), (1, 1), (1, 1)),
         mode="constant",
         constant_values=np.nan,
     )
+    print("a", time.perf_counter() - t0)
 
     # We construct a topology helper to deal with indices and neighborhoods.
     top = VoxelTopology(sdf_values.shape)
@@ -58,9 +61,12 @@ def surface_nets(
     # a single element as done above).
 
     # Get all edge endpoints in terms of voxel coords.
-    sijk, tijk = top.find_edge_vertices(range(top.num_edges), ravel=False)
+    # sijk, tijk = top.find_edge_vertices(range(top.num_edges), ravel=False)
+    sijk, tijk = top.get_all_edge_vertices(ravel=False)
     si, sj, sk = sijk.T
     ti, tj, tk = tijk.T
+
+    print("b", time.perf_counter() - t0)
 
     # Just like in MC, we compute a parametric value t for each edge that
     # tells use where the surface boundary intersects the edge. We assume
@@ -68,9 +74,12 @@ def surface_nets(
     # value t can be approximated by linear equation. Note, active edges
     # have t value in [0,1].
     with np.errstate(divide="ignore", invalid="ignore"):
-        sdf_diff = sdf_values[ti, tj, tk] - sdf_values[si, sj, sk]
-        t = -sdf_values[si, sj, sk] / sdf_diff
+        sv = sdf_values[si, sj, sk]
+        sdf_diff = sdf_values[ti, tj, tk] - sv
+        t = -sv / sdf_diff
     active_edge_mask = np.logical_and(t >= 0, t <= 1.0)
+
+    print("c", time.perf_counter() - t0)
 
     # Vertex placements are chosen by averaging intersection points
     # of active edges belonging to a voxel. In case we wish to get Minecraft
@@ -83,6 +92,7 @@ def surface_nets(
     # Compute the edge intersection points for all edges (also non-active
     # ones to avoid index headaches.)
     edge_isect = (1 - t[:, None]) * sijk + t[:, None] * tijk
+    print("d", time.perf_counter() - t0)
 
     active_edges = np.where(active_edge_mask)[0]  # (A,)
 
@@ -95,6 +105,8 @@ def surface_nets(
     active_edges = active_edges[complete_mask]
     active_quads = active_quads[complete_mask]
 
+    print("e", time.perf_counter() - t0)
+
     # The active quad indices are are ordered ccw when looking from the positive
     # active edge direction. In case the sign difference is negative between edge
     # start and end, we need to reverse the indices to maintain a correct ccw
@@ -102,11 +114,15 @@ def surface_nets(
     flip_mask = sdf_diff[active_edges] < 0.0
     active_quads[flip_mask] = np.flip(active_quads[flip_mask], -1)
 
+    print("f", time.perf_counter() - t0)
+
     # Voxel indices are not unique, since an active voxel will be part in more than one
     # quad. However, each active voxel will give rise to only one vertex. We
     # avoid duplicate computations, by computing the set of unique active voxels. Bonus:
     # the inverse array is already the flattened final face array.
     active_voxels, faces = np.unique(active_quads, return_inverse=True)  # (N,)
+
+    print("g", time.perf_counter() - t0)
 
     # For each active voxel, we find the 12 constituting edges and then compute the
     # vertex location as the average of the edge intersection points of active edges.
@@ -116,6 +132,8 @@ def surface_nets(
     active_voxel_edges = top.find_voxel_edges(active_voxels)  # (N,12)
     e = edge_isect[active_voxel_edges]  # (N,12,3)
     verts = (np.nanmean(e, 1) - (1, 1, 1)) * spacing  # (M,3)
+
+    print("h", time.perf_counter() - t0)
 
     # 3. Step - Postprocessing
     # In case triangulation is required, we simply split each quad into two triangles.

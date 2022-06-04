@@ -1,7 +1,6 @@
-from random import sample
-
-
 import numpy as np
+
+import time
 
 
 class VoxelTopology:
@@ -70,15 +69,42 @@ class VoxelTopology:
         self, edges: np.ndarray, ravel: bool = True
     ) -> tuple[np.ndarray, np.ndarray]:
         edges = np.asarray(edges, dtype=np.int32)
+        t0 = time.perf_counter()
         if edges.ndim == 1:
             edges = self.unravel_nd(edges, self.edge_shape)
+        print("edge_a", time.perf_counter() - t0)
         offs = np.eye(3, dtype=np.int32)
-        src = edges[..., :3]
-        dst = src + offs[edges[..., -1]]
+        src = edges[:, :3]
+        dst = src + offs[edges[:, -1]]
+        print("edge_b", time.perf_counter() - t0)
         if ravel:
             src = self.ravel_nd(src, self.sample_shape)
             dst = self.ravel_nd(dst, self.sample_shape)
         return src, dst
+
+    def get_all_edge_vertices(self, ravel: bool = True):
+        I, J, K = self.edge_shape[:3]
+        sijk = (
+            np.stack(
+                np.meshgrid(
+                    np.arange(I, dtype=np.int32),
+                    np.arange(J, dtype=np.int32),
+                    np.arange(K, dtype=np.int32),
+                    indexing="ij",
+                ),
+                -1,
+            )
+            .reshape(-1, 3)
+            .repeat(3, 0)
+            .reshape(-1, 3, 3)
+        )
+        tijk = sijk + np.eye(3, dtype=np.int32).reshape(1, 3, 3)
+        tijk = tijk.reshape(-1, 3)
+        sijk = sijk.reshape(-1, 3)
+        if ravel:
+            sijk = self.ravel_nd(sijk, self.sample_shape)
+            tijk = self.ravel_nd(tijk, self.sample_shape)
+        return sijk, tijk
 
     def find_voxels_sharing_edge(
         self, edges: np.ndarray, ravel: bool = True

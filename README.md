@@ -26,7 +26,7 @@ See [examples/compare.py](examples/compare.py) for details.
 # Main import
 import surfacenets as sn
 
-# Setup the snowman-scene
+# Setup a snowman-scene
 scene = sn.sdfs.Union(
     [
         sn.sdfs.Sphere.create(center=(0, 0, 0), radius=0.5),

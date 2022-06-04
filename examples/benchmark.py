@@ -1,11 +1,12 @@
 """Benchmarking different methods"""
-
-import time
+import logging
+import numpy as np
 
 import surfacenets as sn
 
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)
 
     scene = sn.sdfs.Union(
         [
@@ -17,7 +18,7 @@ def main():
     )
 
     xyz, spacing = sn.sample_volume(res=(100, 100, 100))
-    sdfv = scene.sample(xyz)
+    sdfv = scene.sample(xyz).astype(np.float32)
     verts, faces = sn.surface_nets(
         sdfv,
         spacing=spacing,

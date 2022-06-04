@@ -75,7 +75,9 @@ def surface_nets(
     # have t value in [0,1].
     with np.errstate(divide="ignore", invalid="ignore"):
         sv = sdf_values[si, sj, sk]
-        sdf_diff = sdf_values[ti, tj, tk] - sv
+        tv = sdf_values[ti, tj, tk]
+        sdf_diff = tv - sv
+        sdf_diff[sdf_diff == 0] = 1e-8
         t = -sv / sdf_diff
     active_edge_mask = np.logical_and(t >= 0, t <= 1.0)
 
@@ -91,7 +93,13 @@ def surface_nets(
 
     # Compute the edge intersection points for all edges (also non-active
     # ones to avoid index headaches.)
-    edge_isect = (1 - t[:, None]) * sijk + t[:, None] * tijk
+    edge_isect = np.full((sijk.shape[0], 3), np.nan, dtype=sdf_values.dtype)
+    print(sijk[active_edge_mask].shape)
+    print(edge_isect[active_edge_mask].shape)
+    active_t = t[active_edge_mask, None]
+    edge_isect[active_edge_mask] = (1 - active_t) * sijk[
+        active_edge_mask
+    ] + active_t * tijk[active_edge_mask]
     print("d", time.perf_counter() - t0)
 
     active_edges = np.where(active_edge_mask)[0]  # (A,)

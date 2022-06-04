@@ -80,6 +80,9 @@ Here are some additional plots from the library
 <div align="center">
 <img src="doc/normals.svg" width="50%">
 </div>
+<div align="center">
+<img src="doc/bool.svg" width="50%">
+</div>
 
 ## References
 

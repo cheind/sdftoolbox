@@ -4,9 +4,7 @@ from typing import TypeVar, Any
 ShapeLike = TypeVar("ShapeLike", bound=Any)
 
 
-def generalized_max(
-    x: np.ndarray, axis: ShapeLike = None, alpha: float = np.inf
-):
+def generalized_max(x: np.ndarray, axis: ShapeLike = None, alpha: float = np.inf):
     """Generalized maximum function.
 
     As `alpha` goes to infinity this function transforms from a smooth
@@ -35,27 +33,14 @@ def generalized_max(
 
 
 def hom(v, value=1):
-    """Returns v as homogeneous vectors by inserting one more element into the last axis
-    the parameter value defines which value to insert (meaningful values would be 0 and 1)
-    >>> homogenize([1, 2, 3]).tolist()
-    [1, 2, 3, 1]
-    >>> homogenize([1, 2, 3], 9).tolist()
-    [1, 2, 3, 9]
-    >>> homogenize([[1, 2], [3, 4]]).tolist()
-    [[1, 2, 1], [3, 4, 1]]
-    """
+    """Returns v as homogeneous vectors"""
     v = np.asanyarray(v)
     return np.insert(v, v.shape[-1], value, axis=-1)
 
 
 def dehom(a):
-    """Makes homogeneous vectors inhomogenious by dividing by the last element in the last axis
-    >>> dehomogenize([1, 2, 4, 2]).tolist()
-    [0.5, 1.0, 2.0]
-    >>> dehomogenize([[1, 2], [4, 4]]).tolist()
-    [[0.5], [1.0]]
-    """
-    a = np.asfarray(a)
+    """Makes homogeneous vectors inhomogenious by dividing by the last element of the last axis"""
+    a = np.asarray(a)
     return a[..., :-1] / a[..., None, -1]
 
 

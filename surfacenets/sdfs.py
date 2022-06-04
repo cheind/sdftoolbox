@@ -2,8 +2,6 @@
 
 Tools to create, manipulate and sample continuous signed distance functions in 3D. 
 """
-
-from threading import stack_size
 from typing import Callable
 import numpy as np
 import abc
@@ -45,9 +43,9 @@ class Transform(SDF):
     def __init__(self, t_world_local: np.ndarray = None) -> None:
         if t_world_local is None:
             t_world_local = np.eye(4, dtype=np.float32)
-        self._t_world_local = t_world_local
-        self._t_local_world = np.linalg.inv(t_world_local)
+
         self._t_dirty = False
+        self.t_world_local = t_world_local
 
     @property
     def t_world_local(self) -> np.ndarray:
@@ -55,7 +53,7 @@ class Transform(SDF):
 
     @t_world_local.setter
     def t_world_local(self, m: np.ndarray):
-        self._t_world_local = m
+        self._t_world_local = np.asarray(m).astype(np.float32)
         self._t_dirty = True
 
     @property
@@ -130,6 +128,8 @@ class Difference(SDF):
 
 
 class Displacement(SDF):
+    """Displace SDF by function modifier."""
+
     def __init__(self, node: SDF, dispfn: Callable[[np.ndarray], float]) -> None:
         self.dispfn = dispfn
         self.node = node

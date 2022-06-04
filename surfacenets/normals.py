@@ -6,7 +6,7 @@ import numpy as np
 def compute_face_normals(verts: np.ndarray, faces: np.ndarray) -> np.ndarray:
     """Computes face normals for the given mesh."""
     xyz = verts[faces]  # (N,F,3)
-    normals = np.cross(xyz[:, 1] - xyz[:, 0], xyz[:, 2] - xyz[:, 0], axis=-1)  # (N,3)
+    normals = np.cross(xyz[:, 1] - xyz[:, 0], xyz[:, -1] - xyz[:, 0], axis=-1)  # (N,3)
     normals /= np.linalg.norm(normals, axis=-1, keepdims=True)
     return normals
 

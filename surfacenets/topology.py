@@ -28,9 +28,9 @@ class VoxelTopology:
         [
             [  # i
                 [0, 0, 0],
-                [0, 0, -1],
-                [0, -1, -1],
                 [0, -1, 0],
+                [0, -1, -1],
+                [0, 0, -1],
             ],
             [  # j
                 [0, 0, 0],
@@ -48,9 +48,7 @@ class VoxelTopology:
         dtype=np.int32,
     )
 
-    def __init__(
-        self, sample_shape: tuple[int, int, int], padding: int = 1
-    ) -> None:
+    def __init__(self, sample_shape: tuple[int, int, int], padding: int = 1) -> None:
         self.sample_shape = sample_shape
         self.padding = padding
         self.edge_shape = (
@@ -61,14 +59,10 @@ class VoxelTopology:
         )
         self.num_edges = np.prod(self.edge_shape)
 
-    def ravel_nd(
-        self, nd_indices: np.ndarray, shape: tuple[int, ...]
-    ) -> np.ndarray:
+    def ravel_nd(self, nd_indices: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
         return np.ravel_multi_index(list(nd_indices.T), dims=shape)
 
-    def unravel_nd(
-        self, indices: np.ndarray, shape: tuple[int, ...]
-    ) -> np.ndarray:
+    def unravel_nd(self, indices: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
         ur = np.unravel_index(indices, shape)
         return np.stack(ur, -1)
 
@@ -97,16 +91,13 @@ class VoxelTopology:
         elabels = edges[..., -1]
 
         neighbors = (
-            np.expand_dims(voxels, -2)
-            + VoxelTopology.EDGE_VOXEL_OFFSETS[elabels]
+            np.expand_dims(voxels, -2) + VoxelTopology.EDGE_VOXEL_OFFSETS[elabels]
         )  # (N,4,3)
 
         edge_mask = (neighbors >= self.padding) & (
             neighbors < np.array(self.sample_shape) - 2 * self.padding
         )
-        edge_mask = edge_mask.all(-1).all(
-            -1
-        )  # All edges that have 4 valid neighbors
+        edge_mask = edge_mask.all(-1).all(-1)  # All edges that have 4 valid neighbors
 
         if ravel:
             neighbors = self.ravel_nd(
@@ -114,9 +105,7 @@ class VoxelTopology:
             ).reshape(-1, 4)
         return neighbors, edge_mask
 
-    def find_voxel_edges(
-        self, voxels: np.ndarray, ravel: bool = True
-    ) -> np.ndarray:
+    def find_voxel_edges(self, voxels: np.ndarray, ravel: bool = True) -> np.ndarray:
         """Returns all edges for the given voxels
 
         Params:
@@ -135,9 +124,7 @@ class VoxelTopology:
         )
         edges = voxels + VoxelTopology.VOXEL_EDGE_OFFSETS
         if ravel:
-            edges = self.ravel_nd(
-                edges.reshape(-1, 4), self.edge_shape
-            ).reshape(-1, 12)
+            edges = self.ravel_nd(edges.reshape(-1, 4), self.edge_shape).reshape(-1, 12)
         return edges
 
 
@@ -166,9 +153,7 @@ if __name__ == "__main__":
 
     print(np.flip(xyz.transpose((2, 1, 0)), 1))
 
-    vijk = top.find_voxels_sharing_edge(top.edge_ids, ravel=False).reshape(
-        -1, 3
-    )
+    vijk = top.find_voxels_sharing_edge(top.edge_ids, ravel=False).reshape(-1, 3)
     vi, vj, vk = vijk.T
     xyz[:] = 0
     xyz[vi, vj, vk] = 1

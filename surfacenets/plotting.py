@@ -11,10 +11,7 @@ def create_figure(
     fig_aspect: float = 1,
 ):
     fig = plt.figure(figsize=plt.figaspect(fig_aspect))
-    ax = fig.add_subplot(
-        111,
-        projection="3d",
-    )
+    ax = fig.add_subplot(111, projection="3d", computed_zorder=False)
     ax.set_proj_type(proj_type)
     return fig, ax
 
@@ -23,8 +20,12 @@ def create_split_figure(
     sync: bool = True, proj_type: Literal["persp", "ortho"] = "persp"
 ):
     fig = plt.figure(figsize=plt.figaspect(0.5))
-    ax0 = fig.add_subplot(1, 2, 1, projection="3d", proj_type=proj_type)
-    ax1 = fig.add_subplot(1, 2, 2, projection="3d", proj_type=proj_type)
+    ax0 = fig.add_subplot(
+        1, 2, 1, projection="3d", proj_type=proj_type, computed_zorder=False
+    )
+    ax1 = fig.add_subplot(
+        1, 2, 2, projection="3d", proj_type=proj_type, computed_zorder=False
+    )
 
     sync_pending = False
     sync_dir = [None, None]
@@ -98,7 +99,7 @@ def plot_mesh(
 ):
     # Better colors? https://matplotlib.org/stable/gallery/mplot3d/voxels_rgb.html
     # https://stackoverflow.com/questions/56864378/how-to-light-and-shade-a-poly3dcollection
-    mesh = Poly3DCollection(verts[faces], linewidth=0.2)
+    mesh = Poly3DCollection(verts[faces], linewidth=0.2, zorder=1)
     mesh.set_edgecolor("w")
     ax.add_collection3d(mesh)
 
@@ -115,14 +116,17 @@ def plot_mesh(
             color="r",
             linewidth=0.2,
             # normalize=True,
+            zorder=2,
         )
 
 
-def create_mesh_figure(verts: np.ndarray, faces: np.ndarray):
-    min_corner = verts.min(0)
-    max_corner = verts.max(0)
+def create_mesh_figure(
+    verts: np.ndarray, faces: np.ndarray, face_normals: np.ndarray = None
+):
+    min_corner = verts.min(0) - 0.5
+    max_corner = verts.max(0) + 0.5
 
     fig, ax = create_figure()
-    plot_mesh(ax, verts, faces)
+    plot_mesh(ax, verts, faces, face_normals)
     setup_axes(ax, min_corner, max_corner)
     return fig, ax

@@ -2,7 +2,6 @@ from typing import Literal
 
 import numpy as np
 
-from . import plotting
 from .topology import VoxelTopology
 
 

@@ -12,12 +12,13 @@ See [examples/compare.py](examples/compare.py) for details.
 
 ## Features
 
--   A vectorized SurfaceNets method
--   Midpoint and naive surface point placement
--   Quad/Triangle support
--   Support for creating and manipulating SDFs
--   Plotting support for reconstructed meshes
--   Export (STL) support for reconstruted meshes
+-   A vectorized SurfaceNets implementation based on numpy
+    -   Midpoint and naive surface point placement
+    -   Quad/Triangle support
+    -   Vertex/Face normal support
+-   Tools for programmatically creating and modifying SDFs
+-   Plotting support for reconstructed meshes using matplotlib
+-   Exporting (STL) of tesselated isosurfaces
 
 ## Example Code
 
@@ -60,6 +61,25 @@ Install with development extras to run all the examples.
 ```
 pip install git+https://github.com/cheind/sdf-surfacenets#egg=sdf-surfacenets[dev]
 ```
+
+## Examples
+
+The examples can be found in [./examples/](./examples/). Each example can be invoked as a module
+
+```
+python -m examples.<name>
+```
+
+## Gallery
+
+Here are some additional plots from the library
+
+<div align="center">
+<img src="doc/lods.svg" width="50%">
+</div>
+<div align="center">
+<img src="doc/normals.svg" width="50%">
+</div>
 
 ## References
 

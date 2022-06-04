@@ -95,7 +95,11 @@ def setup_axes(
 
 
 def plot_mesh(
-    ax, verts: np.ndarray, faces: np.ndarray, face_normals: np.ndarray = None
+    ax,
+    verts: np.ndarray,
+    faces: np.ndarray,
+    face_normals: np.ndarray = None,
+    vertex_normals: np.ndarray = None,
 ):
     # Better colors? https://matplotlib.org/stable/gallery/mplot3d/voxels_rgb.html
     # https://stackoverflow.com/questions/56864378/how-to-light-and-shade-a-poly3dcollection
@@ -103,30 +107,38 @@ def plot_mesh(
     mesh.set_edgecolor("w")
     ax.add_collection3d(mesh)
 
-    if face_normals is not None:
-        centers = verts[faces].mean(1)
+    def add_normals_plot(origins, dirs, color):
         ax.quiver(
-            centers[:, 0],
-            centers[:, 1],
-            centers[:, 2],
-            face_normals[:, 0],
-            face_normals[:, 1],
-            face_normals[:, 2],
+            origins[:, 0],
+            origins[:, 1],
+            origins[:, 2],
+            dirs[:, 0],
+            dirs[:, 1],
+            dirs[:, 2],
             length=0.1,
-            color="r",
-            linewidth=0.2,
-            # normalize=True,
+            color=color,
+            linewidth=0.5,
             zorder=2,
         )
 
+    if face_normals is not None:
+        centers = verts[faces].mean(1)
+        add_normals_plot(centers, face_normals, "purple")
+
+    if vertex_normals is not None:
+        add_normals_plot(verts, vertex_normals, "lime")
+
 
 def create_mesh_figure(
-    verts: np.ndarray, faces: np.ndarray, face_normals: np.ndarray = None
+    verts: np.ndarray,
+    faces: np.ndarray,
+    face_normals: np.ndarray = None,
+    vertex_normals: np.ndarray = None,
 ):
     min_corner = verts.min(0) - 0.5
     max_corner = verts.max(0) + 0.5
 
     fig, ax = create_figure()
-    plot_mesh(ax, verts, faces, face_normals)
+    plot_mesh(ax, verts, faces, face_normals, vertex_normals)
     setup_axes(ax, min_corner, max_corner)
     return fig, ax

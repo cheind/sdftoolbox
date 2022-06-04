@@ -6,7 +6,7 @@ This repository provides a vectorized Python implementation of (naive) SurfaceNe
 <img src="doc/surfacenets.svg">
 </div>
 
-The image above shows two reconstructions of a sphere displaced by waves. The reconstruction on the left uses SurfaceNets from this library, the right side shows a Marching Cubes mesh created using scikit-image.
+The image above shows two reconstructions of a sphere displaced by waves. The reconstruction on the left uses SurfaceNets from this library, the right side shows the result of applying Marching Cubes algorithm from scikit-image.
 
 See [examples/compare.py](examples/compare.py) for details.
 

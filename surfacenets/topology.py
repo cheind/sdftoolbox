@@ -106,6 +106,19 @@ class VoxelTopology:
             tijk = self.ravel_nd(tijk, self.sample_shape)
         return sijk, tijk
 
+    def get_all_source_vertices(self):
+        I, J, K = self.edge_shape[:3]
+        sijk = np.stack(
+            np.meshgrid(
+                np.arange(I, dtype=np.int32),
+                np.arange(J, dtype=np.int32),
+                np.arange(K, dtype=np.int32),
+                indexing="ij",
+            ),
+            -1,
+        ).reshape(-1, 3)
+        return sijk
+
     def find_voxels_sharing_edge(
         self, edges: np.ndarray, ravel: bool = True
     ) -> np.ndarray:

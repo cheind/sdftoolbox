@@ -1,3 +1,5 @@
+"""Helper functions for plotting meshes through matplotlib."""
+
 from typing import Literal
 
 import matplotlib.pyplot as plt
@@ -10,6 +12,7 @@ def create_figure(
     proj_type: Literal["persp", "ortho"] = "persp",
     fig_aspect: float = 1,
 ):
+    """Returns a figure/axis for 3d plotting."""
     fig = plt.figure(figsize=plt.figaspect(fig_aspect))
     ax = fig.add_subplot(111, projection="3d", computed_zorder=False)
     ax.set_proj_type(proj_type)
@@ -19,6 +22,18 @@ def create_figure(
 def create_split_figure(
     sync: bool = True, proj_type: Literal["persp", "ortho"] = "persp"
 ):
+    """Returns a figure composed of two axis for side-by-side 3d plotting.
+
+    Params:
+        sync: Whether or not to sync the two views once an interactive op
+            has finished. Axis sharing like for 2d plots is not implemented
+            for matplotlib 3d, so we simulate it with custom code.
+        proj_type: Projection type
+
+    Returns:
+        fig: matplotlib figure
+        axes: tuple of two axis
+    """
     fig = plt.figure(figsize=plt.figaspect(0.5))
     ax0 = fig.add_subplot(
         1, 2, 1, projection="3d", proj_type=proj_type, computed_zorder=False
@@ -60,12 +75,22 @@ def create_split_figure(
 
 def setup_axes(
     ax,
-    min_corner,
-    max_corner,
+    min_corner: tuple[float, ...],
+    max_corner: tuple[float, ...],
     azimuth: float = -139,
     elevation: float = 35,
     num_grid: int = 3,
 ):
+    """Set axis view options.
+
+    Params:
+        ax: matplotlib axis
+        min_corner: min data corner for computing zoom values
+        max_corner: max data corner for computing zoom values
+        azimuth: camera view angle in degrees
+        elevation: camera view angle in degrees
+        num_grid: the number of grid lines. Set to zero to disable grid.
+    """
 
     ax.set_xlim(min_corner[0], max_corner[0])
     ax.set_ylim(min_corner[1], max_corner[1])
@@ -101,6 +126,17 @@ def plot_mesh(
     face_normals: np.ndarray = None,
     vertex_normals: np.ndarray = None,
 ):
+    """Add a mesh to the axis.
+
+    Params:
+        ax: matplotlib axis
+        verts: (N,3) array of vertices
+        faces: (M,F) array of faces with F=3 for triangles and F=4 for quads
+        face_normals: (M,3) array of face normals (optional). When supplied, additional
+            arrows will be plotted to indicate the normal per face.
+        vertex_normals: (N,3) array of vertex normals (optional). When supplied,
+            additional arrows will be plotted to indicate the normal per vertex.
+    """
     # Better colors? https://matplotlib.org/stable/gallery/mplot3d/voxels_rgb.html
     # https://stackoverflow.com/questions/56864378/how-to-light-and-shade-a-poly3dcollection
     mesh = Poly3DCollection(verts[faces], linewidth=0.2, zorder=1)
@@ -135,6 +171,23 @@ def create_mesh_figure(
     face_normals: np.ndarray = None,
     vertex_normals: np.ndarray = None,
 ):
+    """Helper to quickly plot a single mesh.
+
+    This method creates a 3d enabled figure, adds the given mesh to the plot
+    and estimates the view limit from mesh bounds.
+
+    Params:
+        verts: (N,3) array of vertices
+        faces: (M,F) array of faces with F=3 for triangles and F=4 for quads
+        face_normals: (M,3) array of face normals (optional). When supplied, additional
+            arrows will be plotted to indicate the normal per face.
+        vertex_normals: (N,3) array of vertex normals (optional). When supplied,
+            additional arrows will be plotted to indicate the normal per vertex.
+
+    Returns:
+        fig: matplotlib figure
+        ax: matplotlib axis
+    """
     min_corner = verts.min(0) - 0.5
     max_corner = verts.max(0) + 0.5
 

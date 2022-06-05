@@ -1,9 +1,10 @@
 import numpy as np
 
-import time
-
 
 class VoxelTopology:
+    """Topology helper for voxel grids."""
+
+    """Offsets used to compute the edge indices for a single voxel."""
     VOXEL_EDGE_OFFSETS = np.array(
         [
             [0, 0, 0, 0],
@@ -22,7 +23,10 @@ class VoxelTopology:
         dtype=np.int32,
     ).reshape(1, 12, 4)
 
-    # ccw along +edge dir, always starting at max voxel
+    """Offsets for computing voxel indices neighboring a given edge.
+    The ordering is such that voxel indices are CCW when looking from
+    positive edge dir, always starting with maximum voxel index.    
+    """
     EDGE_VOXEL_OFFSETS = np.array(
         [
             [  # i
@@ -59,30 +63,56 @@ class VoxelTopology:
         self.num_edges = np.prod(self.edge_shape)
 
     def ravel_nd(self, nd_indices: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
+        """Convert multi-dimensional indices to a flat indices."""
         return np.ravel_multi_index(list(nd_indices.T), dims=shape)
 
     def unravel_nd(self, indices: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
+        """Convert flat indices back to a multi-dimensional indices."""
         ur = np.unravel_index(indices, shape)
         return np.stack(ur, -1)
 
     def find_edge_vertices(
         self, edges: np.ndarray, ravel: bool = True
     ) -> tuple[np.ndarray, np.ndarray]:
+        """Find start/end voxel indices for the given edges.
+
+        Params:
+            edges: (N,) or (N,4) array of edge indices
+            ravel: Whether to return voxel as flat indices or nd indices
+
+        Returns:
+            s: (N,) or (N,3) array of source voxel indices for each edge
+            t: (N,) or (N,3) array of target voxel indices for each edge
+        """
         edges = np.asarray(edges, dtype=np.int32)
-        t0 = time.perf_counter()
         if edges.ndim == 1:
             edges = self.unravel_nd(edges, self.edge_shape)
-        print("edge_a", time.perf_counter() - t0)
         offs = np.eye(3, dtype=np.int32)
         src = edges[:, :3]
         dst = src + offs[edges[:, -1]]
-        print("edge_b", time.perf_counter() - t0)
         if ravel:
             src = self.ravel_nd(src, self.sample_shape)
             dst = self.ravel_nd(dst, self.sample_shape)
         return src, dst
 
     def get_all_edge_vertices(self, ravel: bool = True):
+        """Find start/end voxels for all possible edges.
+
+        This method is quite a bit faster than
+
+            find_edge_vertices(range(num_edges))
+
+        because it avoids unravelling. In the current implementation
+        this method is is not used in favor of `get_all_source_vertices`,
+        however I leave it here for reference.
+
+        Params:
+            ravel: Whether to return voxel as flat indices or nd indices.
+
+        Returns:
+            s: (N,) or (N,3) array of source voxel indices for each edge
+            t: (N,) or (N,3) array of target voxel indices for each edge
+        """
         I, J, K = self.edge_shape[:3]
         sijk = (
             np.stack(
@@ -107,6 +137,15 @@ class VoxelTopology:
         return sijk, tijk
 
     def get_all_source_vertices(self):
+        """Find all edge start voxel indices
+
+        Similar to `get_all_edge_vertices` but does not compute
+        target voxel indices also does not repeat (x3) the source
+        voxel indices for each possible edge direction.
+
+        Returns:
+            s: (N,3) array of source voxel indices for each possible edge
+        """
         I, J, K = self.edge_shape[:3]
         sijk = np.stack(
             np.meshgrid(
@@ -122,7 +161,16 @@ class VoxelTopology:
     def find_voxels_sharing_edge(
         self, edges: np.ndarray, ravel: bool = True
     ) -> np.ndarray:
-        """Returns all voxel neighbors sharing the given edge."""
+        """Returns all voxel neighbors sharing the given edge in ccw order.
+
+        Params:
+            edges: (N,) or (N,4) array of edge indices
+            ravel: Whether to return voxel as flat indices or nd indices
+
+        Returns:
+            v: (N,4) or (N,4,3) of voxel indices in ccw order when viewed from
+                position edge direction.
+        """
         edges = np.asarray(edges, dtype=np.int32)
         if edges.ndim == 1:
             edges = self.unravel_nd(edges, self.edge_shape)
@@ -145,13 +193,14 @@ class VoxelTopology:
         return neighbors, edge_mask
 
     def find_voxel_edges(self, voxels: np.ndarray, ravel: bool = True) -> np.ndarray:
-        """Returns all edges for the given voxels
+        """Finds all edges for the given voxels.
 
         Params:
-            voxels: (N,) or (N,3) index array
+            voxels: (N,) or (N,3) voxel indices.
+            ravel: Whether to return voxel as flat indices or nd indices
 
         Returns:
-            edges: (N,12) edge index array
+            edges: (N,12) or (N,12,4) edge indices.
         """
         voxels = np.asarray(voxels, dtype=np.int32)
         if voxels.ndim == 1:
@@ -165,57 +214,3 @@ class VoxelTopology:
         if ravel:
             edges = self.ravel_nd(edges.reshape(-1, 4), self.edge_shape).reshape(-1, 12)
         return edges
-
-
-if __name__ == "__main__":
-    top = VoxelTopology((2, 2, 2))
-
-    xyz = np.zeros((4, 4, 4), dtype=np.int32)
-
-    print(top.unravel_nd([0, 1, 2, 3], top.edge_shape))
-
-    print(top.find_edge_vertices([0, 1, 2, 3], ravel=False))
-
-    sijk, tijk = top.find_edge_vertices(top.edge_ids, ravel=False)
-    si, sj, sk = sijk.T
-    ti, tj, tk = tijk.T
-
-    xyz[si, sj, sk] = 1
-    xyz[ti, tj, tk] = 1
-
-    print(top.find_edge_vertices([0], ravel=False))
-    vijk = top.find_voxels_sharing_edge([0], ravel=False).squeeze(0)
-    vi, vj, vk = vijk.T
-    print(vijk)
-    xyz[:] = 0
-    xyz[vi, vj, vk] = 1
-
-    print(np.flip(xyz.transpose((2, 1, 0)), 1))
-
-    vijk = top.find_voxels_sharing_edge(top.edge_ids, ravel=False).reshape(-1, 3)
-    vi, vj, vk = vijk.T
-    xyz[:] = 0
-    xyz[vi, vj, vk] = 1
-
-    print(np.flip(xyz.transpose((2, 1, 0)), 1))
-
-    print(top.find_voxel_edges([[1, 1, 1]], ravel=False))
-
-    # print(xyz.transpose((2, 0, 1)))
-    # print(xyz.transpose((2, 0, 1)))
-
-    # edge_ijke = top.unravel_nd(top.edge_ids, top.edge_shape)
-
-    # print(top.num_edges)
-
-    # sidx, tidx = top.find_edge_vertices(top.edge_ids)
-    # print(sidx[0], top.unravel_nd(sidx[0], top.ext_sample_shape))
-    # print(tidx[0], top.unravel_nd(tidx[0], top.ext_sample_shape))
-
-    # # print(top.unravel_nd(sidx[25], top.sample_shape))
-    # # print(top.unravel_nd(tidx[25], top.sample_shape))
-
-    # print(top.find_voxels_sharing_edge([0], ravel=False))
-    # print(top.find_voxel_edges([0], ravel=False))
-
-    # print(sidx[5], tidx[5])

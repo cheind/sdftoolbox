@@ -38,7 +38,12 @@ class SDF(abc.ABC):
 
 
 class Transform(SDF):
-    """Base for nodes with transforms"""
+    """Base for nodes with transforms.
+
+    Most of the primitives nodes are defined in terms of a canonical shape (unit sphere, xy-plane). The transform allows you to arbitrarily shift, rotate and scale them to your needs.
+
+    When inheriting from Transform, you need to implement `sample_local` instead of `sample`.
+    """
 
     def __init__(self, t_world_local: np.ndarray = None) -> None:
         if t_world_local is None:
@@ -83,7 +88,7 @@ class Transform(SDF):
 
 
 class Union(SDF):
-    """Boolean union operation."""
+    """(Smooth) Boolean union operation."""
 
     def __init__(self, sdfs: list[SDF], alpha: float = np.inf) -> None:
         if len(sdfs) == 0:
@@ -98,7 +103,7 @@ class Union(SDF):
 
 
 class Intersection(SDF):
-    """Boolean intersection operation."""
+    """(Smooth) Boolean intersection operation."""
 
     def __init__(self, sdfs: list[SDF], alpha: float = np.inf) -> None:
         if len(sdfs) == 0:
@@ -112,7 +117,7 @@ class Intersection(SDF):
 
 
 class Difference(SDF):
-    """Boolean difference operation."""
+    """(Smooth) Boolean difference operation."""
 
     def __init__(self, sdfs: list[SDF], alpha: float = np.inf) -> None:
         if len(sdfs) == 0:
@@ -128,7 +133,7 @@ class Difference(SDF):
 
 
 class Displacement(SDF):
-    """Displace SDF by function modifier."""
+    """Displaces a SDF node by function modifier."""
 
     def __init__(self, node: SDF, dispfn: Callable[[np.ndarray], float]) -> None:
         self.dispfn = dispfn
@@ -141,6 +146,8 @@ class Displacement(SDF):
 
 
 class Repetition(SDF):
+    """Repeats a SDF node (in)finitely."""
+
     def __init__(
         self,
         node: SDF,
@@ -156,7 +163,7 @@ class Repetition(SDF):
             self.sample = self._repeat_infinite
 
     def sample(self, x: np.ndarray) -> np.ndarray:
-        pass  # set via init
+        pass  # set via __init__
 
     def _repeat_infinite(self, x: np.ndarray) -> np.ndarray:
         x = np.mod(x + 0.5 * self.periods, self.periods) - 0.5 * self.periods
@@ -168,7 +175,10 @@ class Repetition(SDF):
 
 
 class Sphere(Transform):
-    """The SDF of a sphere"""
+    """The SDF of a unit sphere
+
+    Use the transform properties to adjust the shape and position.
+    """
 
     def sample_local(self, x: np.ndarray) -> np.ndarray:
         d2 = np.square(x).sum(-1)
@@ -179,11 +189,17 @@ class Sphere(Transform):
         center: np.ndarray = (0.0, 0.0, 0.0),
         radius: float = 1.0,
     ) -> "Sphere":
+        """Creates a sphere from center and radius."""
         t = maths.translate(center) @ maths.scale(radius)
         return Sphere(t)
 
 
 class Plane(Transform):
+    """A plane parallel to xy-plane through origin.
+
+    Use the transform properties to adjust the shape and position.
+    """
+
     def sample_local(self, x: np.ndarray) -> np.ndarray:
         return x[..., -1]
 
@@ -191,9 +207,12 @@ class Plane(Transform):
     def create(
         origin: np.ndarray = (0, 0, 0), normal: np.ndarray = (0, 0, 1)
     ) -> "Plane":
+        """Creates a plane from a point and normal direction."""
         normal = np.asarray(normal, dtype=np.float32)
         origin = np.asarray(origin, dtype=np.float32)
         normal /= np.linalg.norm(normal)
+        # Need to find a rotation that alignes canonical frame's z-axis
+        # with normal.
         z = np.array([0.0, 0.0, 1.0], dtype=np.float32)
         d = np.dot(z, normal)
         if d == 1.0:
@@ -209,6 +228,11 @@ class Plane(Transform):
 
 
 class Box(Transform):
+    """A three-dimensional box centered at origin with side-length two.
+
+    Use the transform properties to adjust the shape and position.
+    """
+
     def sample_local(self, x: np.ndarray) -> np.ndarray:
         a = np.abs(x) - 1
         return np.linalg.norm(np.maximum(a, 0), axis=-1) + np.minimum(
@@ -220,68 +244,3 @@ class Box(Transform):
         s = np.asarray(lengths, dtype=np.float32)
         s = s * 0.5
         return Box(maths.scale(s))
-
-
-if __name__ == "__main__":
-    # https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/
-    from skimage.measure import marching_cubes
-    import matplotlib.pyplot as plt
-    import time
-
-    res = (40, 40, 40)
-    min_corner = np.array([-2.0] * 3, dtype=np.float32)
-    max_corner = np.array([2.0] * 3, dtype=np.float32)
-
-    ranges = [
-        np.linspace(min_corner[0], max_corner[0], res[0], dtype=np.float32),
-        np.linspace(min_corner[1], max_corner[1], res[1], dtype=np.float32),
-        np.linspace(min_corner[2], max_corner[2], res[2], dtype=np.float32),
-    ]
-
-    X, Y, Z = np.meshgrid(*ranges)
-    xyz = np.stack((X, Y, Z), -1)
-    spacing = (
-        ranges[0][1] - ranges[0][0],
-        ranges[1][1] - ranges[1][0],
-        ranges[2][1] - ranges[2][0],
-    )
-
-    s1 = Sphere([0.0, 0.0, 0.0], 1.0)
-    s2 = Sphere([1.0, 0.0, 0.0], 1.0)
-    p1 = Plane(origin=[0.0, 0.0, -0.8], normal=(0.0, 0.0, 1.0))
-    sdf = p1.merge(s1.subtract(s2, alpha=4), alpha=4)
-    t0 = time.perf_counter()
-    values = sdf(xyz)
-    print("Eval SDF took", time.perf_counter() - t0, "secs")
-
-    t0 = time.perf_counter()
-    verts, faces, normals, _ = marching_cubes(values, 0.0, spacing=spacing)
-    verts += min_corner[None, :]
-    print("MC took", time.perf_counter() - t0, "secs")
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
-    ax.plot_trisurf(
-        verts[:, 0],
-        verts[:, 1],
-        faces,
-        verts[:, 2],
-        cmap="Spectral",
-        antialiased=True,
-        linewidth=0,
-    )
-    ax.set_xlim(min_corner[0], max_corner[0])
-    ax.set_ylim(min_corner[1], max_corner[1])
-    ax.set_zlim(min_corner[2], max_corner[2])
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
-    ax.set_box_aspect(
-        (
-            max_corner[0] - min_corner[0],
-            max_corner[1] - min_corner[1],
-            max_corner[2] - min_corner[2],
-        )
-    )
-
-    plt.show()

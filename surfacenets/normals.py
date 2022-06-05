@@ -1,10 +1,18 @@
-from distutils.fancy_getopt import fancy_getopt
-from tkinter.tix import Tree
 import numpy as np
 
 
 def compute_face_normals(verts: np.ndarray, faces: np.ndarray) -> np.ndarray:
-    """Computes face normals for the given mesh."""
+    """Computes face normals for the given mesh.
+
+    This assumes that faces are ordered ccw when viewed from the face normal.
+
+    Params:
+        verts: (N,3) array of vertices
+        faces: (M,F) array of faces with F=3 for triangles and F=4 for quads
+
+    Returns:
+        normals: (M,3) array of face normals
+    """
     xyz = verts[faces]  # (N,F,3)
     normals = np.cross(xyz[:, 1] - xyz[:, 0], xyz[:, -1] - xyz[:, 0], axis=-1)  # (N,3)
     normals /= np.linalg.norm(normals, axis=-1, keepdims=True)
@@ -14,6 +22,18 @@ def compute_face_normals(verts: np.ndarray, faces: np.ndarray) -> np.ndarray:
 def compute_vertex_normals(
     verts: np.ndarray, faces: np.ndarray, face_normals: np.ndarray
 ) -> np.ndarray:
+    """Computes vertex normals for the given mesh.
+
+    Each vertex normal is the average of the adjacent face normals.
+
+    Params:
+        verts: (N,3) array of vertices
+        faces: (M,F) array of faces with F=3 for triangles and F=4 for quads
+        face_normals: (M,3) array of face normals
+
+    Returns:
+        normals: (N,3) array of vertex normals
+    """
     # Repeat face normal for each face vertex
     vertex_normals = np.zeros_like(verts)
     vertex_counts = np.zeros((verts.shape[0]), dtype=verts.dtype)
@@ -24,21 +44,3 @@ def compute_vertex_normals(
 
     vertex_normals /= vertex_counts.reshape(-1, 1)
     return vertex_normals
-
-
-if __name__ == "__main__":
-    from .surface_nets import surface_nets
-    from .sampling import sample_volume
-    from .sdfs import Plane, Sphere
-    from . import plotting
-
-    # p = Plane.create(origin=(0.1, 0.1, 0.1))
-    p = Sphere.create()
-    xyz, spacing = sample_volume(res=(3, 3, 3))
-    sdf = p.sample(xyz)
-
-    verts, faces = surface_nets(sdf, spacing)
-    face_normals = compute_face_normals(verts, faces)
-    print(face_normals)
-
-    print(compute_vertex_normals(verts, faces, face_normals))

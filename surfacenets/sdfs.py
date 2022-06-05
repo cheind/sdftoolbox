@@ -31,20 +31,34 @@ class SDF(abc.ABC):
         self,
         x: np.ndarray,
         h: float = 1e-5,
-        mode: Literal["forward", "complex"] = "forward",
+        normalize: bool = False,
     ) -> np.ndarray:
         """Returns derivatives of the SDF wrt. the input locations.
 
         Params:
-            x: (N,3) array of sample locations
+            x: (...,3) array of sample locations
             h: step size for numeric approximation
-            mode: method to use for computation
+            normalize: whether to return normalized gradients
 
         Returns:
-            n: (N,3) array of gradients
+            n: (...,3) array of gradients/normals
         """
+        offsets = (
+            np.expand_dims(
+                np.eye(3, dtype=x.dtype),
+                np.arange(x.ndim - 1).tolist(),
+            )
+            * h
+        )
+        x = np.expand_dims(x, -2)
+        fwd = self.sample(x + offsets)
+        bwd = self.sample(x - offsets)
 
-        pass
+        g = (fwd - bwd) / (2 * h)
+        if normalize:
+            g = g / np.linalg.norm(g, axis=-1, keepdims=True)
+
+        return g
 
     def merge(self, *others: list["SDF"], alpha: float = np.inf) -> "Union":
         return Union([self] + list(others), alpha=alpha)
@@ -211,7 +225,7 @@ class Sphere(Transform):
     """
 
     def sample_local(self, x: np.ndarray) -> np.ndarray:
-        d = np.linalg.norm(x, axis=-1, ord=2)
+        d = np.linalg.norm(x, axis=-1)
         return d - 1.0
 
     @staticmethod

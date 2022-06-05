@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from .normals import compute_face_normals
+from .tesselation import triangulate_quads
 
 
 def export_stl(
@@ -16,7 +17,9 @@ def export_stl(
         faces: (M,F) array of faces with F=3 for triangles and F=4 for quads
         face_normals: (M,3) array of face normals (optional.)
     """
-    assert faces.shape[-1] == 3, "STL requires triangles"
+    if faces.shape[-1] == 4:
+        faces = triangulate_quads(faces)
+        face_normals = None
     if face_normals is None:
         face_normals = compute_face_normals(verts, faces)
     sep = os.linesep

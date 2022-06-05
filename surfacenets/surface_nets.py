@@ -1,10 +1,11 @@
-from typing import Literal
 import logging
+import time
+from typing import Literal
 
 import numpy as np
 
+from .tesselation import triangulate_quads
 from .topology import VoxelTopology
-import time
 
 _logger = logging.getLogger("surfacenets")
 
@@ -159,10 +160,7 @@ def surface_nets(
     # Since the vertex order in faces is ccw, that's easy too.
     faces = faces.reshape(-1, 4)
     if triangulate:
-        tris = np.empty((faces.shape[0], 2, 3), dtype=faces.dtype)
-        tris[:, 0, :] = faces[:, [0, 1, 2]]
-        tris[:, 1, :] = faces[:, [0, 2, 3]]
-        faces = tris.reshape(-1, 3)
+        faces = triangulate_quads(faces)
         _logger.debug(
             f"After triangulation; elapsed {time.perf_counter() - t0:.4f} secs"
         )

@@ -31,6 +31,9 @@ def main():
     )
     verts += xyz[0, 0, 0]
 
+    # Export
+    sn.io.export_stl("surfacenets.stl", verts, faces)
+
     # Visualize
     import matplotlib.pyplot as plt
 

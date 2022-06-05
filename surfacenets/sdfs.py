@@ -2,7 +2,7 @@
 
 Tools to create, manipulate and sample continuous signed distance functions in 3D.
 """
-from typing import Callable
+from typing import Callable, Literal
 import numpy as np
 import abc
 
@@ -26,6 +26,25 @@ class SDF(abc.ABC):
             v: (...) array of SDF values.
         """
         ...
+
+    def gradient(
+        self,
+        x: np.ndarray,
+        h: float = 1e-5,
+        mode: Literal["forward", "complex"] = "forward",
+    ) -> np.ndarray:
+        """Returns derivatives of the SDF wrt. the input locations.
+
+        Params:
+            x: (N,3) array of sample locations
+            h: step size for numeric approximation
+            mode: method to use for computation
+
+        Returns:
+            n: (N,3) array of gradients
+        """
+
+        pass
 
     def merge(self, *others: list["SDF"], alpha: float = np.inf) -> "Union":
         return Union([self] + list(others), alpha=alpha)

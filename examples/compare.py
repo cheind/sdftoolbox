@@ -16,7 +16,7 @@ import surfacenets as sn
 def main():
 
     scene = sn.sdfs.Sphere.create([0, 0, 0], 1.0)
-    scene = sn.sdfs.Displacement(scene, lambda xyz: 0.3 * np.sin(10 * xyz).prod(-1))
+    scene = sn.sdfs.Displacement(scene, lambda xyz: 0.15 * np.sin(10 * xyz).prod(-1))
 
     # Define the sampling locations. Here we use the default params
     xyz, spacing = sn.sample_volume(res=(60, 60, 60))

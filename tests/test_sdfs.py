@@ -27,6 +27,8 @@ def test_plane():
 
 def test_gradients():
     scene = sn.sdfs.Sphere.create(radius=1)
+    analytic = lambda x: x / np.linalg.norm(x, axis=-1, keepdims=True)
+
     xyz = np.array(
         [
             [1.0, 0.0, 0.0],
@@ -35,7 +37,7 @@ def test_gradients():
             [1.0, 1.0, 1.0],
         ]
     )
-    ng = scene.gradient(xyz)
-    analytic = lambda x: x / np.linalg.norm(x, axis=-1, keepdims=True)
     g = analytic(xyz)
-    assert np.allclose(ng, g, atol=1e-3)
+
+    g_central = scene.gradient(xyz, mode="central")
+    assert np.allclose(g_central, g, atol=1e-3)

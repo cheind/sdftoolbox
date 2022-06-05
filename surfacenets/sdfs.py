@@ -2,6 +2,8 @@
 
 Tools to create, manipulate and sample continuous signed distance functions in 3D.
 """
+from argparse import ArgumentError
+from pickletools import ArgumentDescriptor
 from typing import Callable, Literal
 import numpy as np
 import abc
@@ -32,6 +34,7 @@ class SDF(abc.ABC):
         x: np.ndarray,
         h: float = 1e-5,
         normalize: bool = False,
+        mode: Literal["central"] = "central",
     ) -> np.ndarray:
         """Returns derivatives of the SDF wrt. the input locations.
 
@@ -43,18 +46,23 @@ class SDF(abc.ABC):
         Returns:
             n: (...,3) array of gradients/normals
         """
-        offsets = (
-            np.expand_dims(
-                np.eye(3, dtype=x.dtype),
-                np.arange(x.ndim - 1).tolist(),
-            )
-            * h
-        )
-        x = np.expand_dims(x, -2)
-        fwd = self.sample(x + offsets)
-        bwd = self.sample(x - offsets)
 
-        g = (fwd - bwd) / (2 * h)
+        if mode == "central":
+            offsets = (
+                np.expand_dims(
+                    np.eye(3, dtype=x.dtype),
+                    np.arange(x.ndim - 1).tolist(),
+                )
+                * h
+            )
+            x = np.expand_dims(x, -2)
+            fwd = self.sample(x + offsets)
+            bwd = self.sample(x - offsets)
+
+            g = (fwd - bwd) / (2 * h)
+        else:
+            raise ArgumentError("Unknown mode")
+
         if normalize:
             g = g / np.linalg.norm(g, axis=-1, keepdims=True)
 

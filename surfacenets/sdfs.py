@@ -200,8 +200,8 @@ class Sphere(Transform):
     """
 
     def sample_local(self, x: np.ndarray) -> np.ndarray:
-        d2 = np.square(x).sum(-1)
-        return d2 - 1.0
+        d = np.linalg.norm(x, axis=-1, ord=2)
+        return d - 1.0
 
     @staticmethod
     def create(

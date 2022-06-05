@@ -69,6 +69,7 @@ class Transform(SDF):
             t_world_local = np.eye(4, dtype=np.float32)
 
         self._t_dirty = False
+        self._t_scale: float = 1.0
         self.t_world_local = t_world_local
 
     @property
@@ -78,6 +79,7 @@ class Transform(SDF):
     @t_world_local.setter
     def t_world_local(self, m: np.ndarray):
         self._t_world_local = np.asarray(m).astype(np.float32)
+        self._update_scale()
         self._t_dirty = True
 
     @property
@@ -88,7 +90,16 @@ class Transform(SDF):
         return self._t_local_world
 
     def sample(self, x: np.ndarray) -> np.ndarray:
-        return self.sample_local(self._to_local(x))
+        return self.sample_local(self._to_local(x)) * self._t_scale
+
+    def _update_scale(self):
+        scales = np.linalg.norm(self._t_world_local[:3, :3], axis=0)
+        if not np.allclose(scales, scales[0]):
+            raise ValueError(
+                "Only uniform scaling is supported. Anisotropic scaling destroys"
+                " distance fields."
+            )
+        self._t_scale = scales[0]
 
     @abc.abstractmethod
     def sample_local(self, x: np.ndarray) -> np.ndarray:

@@ -29,14 +29,14 @@ def main():
     sphere = sn.sdfs.Sphere.create(radius=0.4)
 
     # Union
-    scene = box.merge(sphere, alpha=8)
+    scene = box.merge(sphere, alpha=np.inf)
     verts, faces = extract(scene)
     sn.plotting.plot_mesh(ax, verts, faces)
     max_corner = np.maximum(verts.max(0), max_corner)
     min_corner = np.minimum(verts.min(0), min_corner)
 
     # Intersection
-    scene = box.intersect(sphere, alpha=8)
+    scene = box.intersect(sphere, alpha=np.inf)
     verts, faces = extract(scene)
     verts += (1.5, 0.0, 0.0)
     sn.plotting.plot_mesh(ax, verts, faces)
@@ -44,7 +44,7 @@ def main():
     min_corner = np.minimum(verts.min(0), min_corner)
 
     # Difference
-    scene = box.subtract(sphere, alpha=8)
+    scene = box.subtract(sphere, alpha=np.inf)
     verts, faces = extract(scene)
     verts += (3.0, 0.0, 0.0)
     sn.plotting.plot_mesh(ax, verts, faces)

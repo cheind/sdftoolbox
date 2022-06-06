@@ -226,6 +226,23 @@ class Repetition(SDF):
 
 
 class Discretized(Transform):
+    """Stores a discretized SDF.
+
+    This node is useful when you wish to sample a continuous SDF for performance
+    reasons.Internally, a anisotropic voxel grid is used to sample the SDF values
+    and optionally gradients. For any query location, the SDF is then reconstructed
+    by trilinear interpolation over the voxel grid.
+
+    This class inherits from Transform, so you can adjust the position, orientation
+    and uniform scale wrt. the SDF node to be sampled.
+
+    Attributes:
+        xyz: (I,J,K,3) array of sampling locations
+        xyz_spacing: (3, ) spacing between two adjacent voxels
+        xyz_sdf: (I,J,K) SDF values at sampling locations
+        xyz_gradients: (I,J,K,3) optional gradients at sampling locations
+    """
+
     def __init__(
         self,
         node: SDF,
@@ -235,6 +252,17 @@ class Discretized(Transform):
         t_world_local: np.ndarray = None,
         with_gradients: bool = False,
     ) -> None:
+        """
+        Params:
+            node: the node representing the SDF to be discretized
+            res: (3,) resolution of the voxel grid
+            min_corner: (3,) minimum spatial sampling location
+            max_corner: (3,) maximum spatial sampling location
+            t_world_local: (4,4) optional transform
+            with_gradients: Whether this class captures gradient or
+                they are computed on the fly from voxel SDF values
+
+        """
         super().__init__(t_world_local)
         self.res = np.array(res, dtype=np.int32)
         self.xyz, self.xyz_spacing = Discretized.sampling_coords(

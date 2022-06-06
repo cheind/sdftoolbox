@@ -20,7 +20,7 @@ def main():
     # Note, the resolution is chosen such that stepping in powers of 2
     # always contains the endpoint. This is important, since the sampling
     # bounds are close the surface of the sphere.
-    xyz, spacing = sn.sample_volume(
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords(
         res=(65, 65, 65),
         min_corner=(-1.1, -1.1, -1.1),
         max_corner=(1.1, 1.1, 1.1),

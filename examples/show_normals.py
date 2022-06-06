@@ -8,9 +8,10 @@ def main():
 
     # Setup the scene
     scene = sn.sdfs.Sphere.create()
-    xyz, spacing = sn.sample_volume(res=(10, 10, 10))
-    sdfv = scene.sample(xyz)
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(10, 10, 10))
 
+    # Generate mesh
+    sdfv = scene.sample(xyz)
     verts, faces = sn.surface_nets(
         sdfv,
         spacing=spacing,

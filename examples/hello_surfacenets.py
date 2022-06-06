@@ -15,11 +15,10 @@ def main():
         ],
         alpha=8,
     )
+    # Generate the sampling locations. Here we use the default params
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords()
 
-    # Define the sampling locations. Here we use the default params
-    xyz, spacing = sn.sample_volume()
-
-    # Evaluate the SDF
+    # Sample SDF
     sdfv = scene.sample(xyz)
 
     # Extract the surface using quadliterals

@@ -1,12 +1,11 @@
 import numpy as np
 import surfacenets as sn
-from numpy.testing import assert_allclose
 
 
 def test_plane_normals():
     def gen_normals(n: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         scene = sn.sdfs.Plane.create((0.01, 0.01, 0.01), normal=n)
-        xyz, spacing = sn.sample_volume(res=(3, 3, 3))
+        xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(3, 3, 3))
         sdfv = scene.sample(xyz)
 
         # Extract the surface using quadliterals

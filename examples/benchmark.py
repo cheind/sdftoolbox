@@ -17,7 +17,7 @@ def main():
         alpha=8,
     )
 
-    xyz, spacing = sn.sample_volume(res=(100, 100, 100))
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(100, 100, 100))
     sdfv = scene.sample(xyz).astype(np.float32)
     verts, faces = sn.surface_nets(
         sdfv,

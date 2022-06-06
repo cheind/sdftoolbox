@@ -6,7 +6,7 @@ import numpy as np
 
 
 def extract(scene: sn.sdfs.SDF):
-    xyz, spacing = sn.sample_volume(res=(60, 60, 60))
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(60, 60, 60))
     sdfv = scene.sample(xyz)
 
     verts, faces = sn.surface_nets(

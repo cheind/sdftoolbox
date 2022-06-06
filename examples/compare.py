@@ -19,7 +19,7 @@ def main():
     scene = sn.sdfs.Displacement(scene, lambda xyz: 0.15 * np.sin(10 * xyz).prod(-1))
 
     # Define the sampling locations. Here we use the default params
-    xyz, spacing = sn.sample_volume(res=(60, 60, 60))
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(60, 60, 60))
 
     # Evaluate the SDF
     t0 = time.perf_counter()

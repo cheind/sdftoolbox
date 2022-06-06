@@ -3,7 +3,6 @@
 Tools to create, manipulate and sample continuous signed distance functions in 3D.
 """
 from argparse import ArgumentError
-from pickletools import ArgumentDescriptor
 from typing import Callable, Literal
 import numpy as np
 import abc
@@ -226,6 +225,134 @@ class Repetition(SDF):
         return self.node.sample(x)
 
 
+class Discretized(Transform):
+    def __init__(
+        self,
+        node: SDF,
+        res: tuple[int, int, int] = (60, 60, 60),
+        min_corner: tuple[float, float, float] = (-2, -2, -2),
+        max_corner: tuple[float, float, float] = (2, 2, 2),
+        t_world_local: np.ndarray = None,
+        with_gradients: bool = False,
+    ) -> None:
+        super().__init__(t_world_local)
+        self.res = np.array(res, dtype=np.int32)
+        self.xyz, self.xyz_spacing = Discretized.sampling_coords(
+            res, min_corner, max_corner
+        )
+        world_xyz = maths.dehom(maths.hom(self.xyz) @ self.t_world_local.T)
+        self.xyz_sdf = node.sample(world_xyz)
+        if with_gradients:
+            self.xyz_gradients = node.gradient(world_xyz)
+        else:
+            self.xyz_gradients = None
+
+    def sample_local(self, x: np.ndarray) -> np.ndarray:
+        """Samples the discretized volume using trilinear interpolation.
+
+        Params:
+            x: (...,3) array of local coordinates
+
+        Returns:
+            sdf: (...) sdf values at given locations.
+        """
+
+        c = self._interp(self.xyz_sdf, x)
+        return c.squeeze(-1)
+
+    def gradient(
+        self,
+        x: np.ndarray,
+        h: float = 0.00001,
+        normalize: bool = False,
+        mode: Literal["central"] = "central",
+    ) -> np.ndarray:
+        if self.xyz_gradients is not None:
+            return self._interp(self.xyz_gradients, x)
+        else:
+            return super().gradient(x, h, normalize, mode)
+
+    def _interp(self, vol: np.ndarray, x: np.ndarray) -> np.ndarray:
+        P = x.shape[:-1]
+        x = x.reshape(-1, 3)
+
+        if vol.ndim == 3:
+            vol = np.expand_dims(vol, -1)
+
+        minc = np.expand_dims(self.xyz[0, 0, 0], 0)
+        maxc = np.expand_dims(self.xyz[-1, -1, -1], 0)
+        x = np.maximum(
+            minc, np.minimum(maxc - 1e-8, x)
+        )  # 1e-8 to always have sample point > x
+
+        spacing = np.expand_dims(self.xyz_spacing, 0)
+        xn = (x - minc) / spacing
+        sijk = np.floor(xn).astype(np.int32)
+        w = xn - sijk
+        print(w.shape, vol.shape, sijk.shape)
+
+        # See https://en.wikipedia.org/wiki/Trilinear_interpolation
+        # i-diretion
+        si, sj, sk = sijk.T
+        c00 = vol[si, sj, sk] * (1 - w[..., 0:1]) + vol[si + 1, sj, sk] * w[..., 0:1]
+        print((vol[si, sj, sk] * (1 - w[..., 0:1])).shape)
+        c01 = (
+            vol[si, sj, sk + 1] * (1 - w[..., 0:1])
+            + vol[si + 1, sj, sk + 1] * w[..., 0:1]
+        )
+        c10 = (
+            vol[si, sj + 1, sk] * (1 - w[..., 0:1])
+            + vol[si + 1, sj + 1, sk] * w[..., 0:1]
+        )
+        c11 = (
+            vol[si, sj + 1, sk + 1] * (1 - w[..., 0:1])
+            + vol[si + 1, sj + 1, sk + 1] * w[..., 0:1]
+        )
+        # j-diretion
+        c0 = c00 * (1 - w[..., 1:2]) + c10 * w[..., 1:2]
+        c1 = c01 * (1 - w[..., 1:2]) + c11 * w[..., 1:2]
+        # k-direction
+        c = c0 * (1 - w[..., 2:3]) + c1 * w[..., 2:3]
+        return c.reshape(P + (c.shape[-1],))
+
+    @staticmethod
+    def sampling_coords(
+        res: tuple[int, int, int] = (60, 60, 60),
+        min_corner: tuple[float, float, float] = (-2, -2, -2),
+        max_corner: tuple[float, float, float] = (2, 2, 2),
+        dtype=np.float32,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Generates volumentric sampling locations.
+
+        Params:
+            res: resolution for each axis
+            min_corner: bounds for the sampling volume
+            max_corner: bounds for the sampling volume
+
+        Returns:
+            xyz: (I,J,K,3) array of sampling locations
+            spacing: (3,) the spatial spacing between two voxels
+        """
+
+        ranges = [
+            np.linspace(min_corner[0], max_corner[0], res[0], dtype=dtype),
+            np.linspace(min_corner[1], max_corner[1], res[1], dtype=dtype),
+            np.linspace(min_corner[2], max_corner[2], res[2], dtype=dtype),
+        ]
+
+        X, Y, Z = np.meshgrid(*ranges, indexing="ij")
+        xyz = np.stack((X, Y, Z), -1)
+        spacing = np.array(
+            [
+                ranges[0][1] - ranges[0][0],
+                ranges[1][1] - ranges[1][0],
+                ranges[2][1] - ranges[2][0],
+            ],
+            dtype=dtype,
+        )
+        return xyz, spacing
+
+
 class Sphere(Transform):
     """The SDF of a unit sphere
 
@@ -300,3 +427,12 @@ class Box(Transform):
     @staticmethod
     def create(lengths: tuple[float, float, float] = (1.0, 1.0, 1.0)) -> "Box":
         return Box(lengths)
+
+
+if __name__ == "__main__":
+    scene = Sphere.create()
+    vol = Discretized(
+        scene, res=(64, 64, 64), min_corner=(-1, -1, -1), max_corner=(1, 1, 1)
+    )
+
+    print(vol.sample(np.array([[[0.0, 0.0, 0.0]]])))

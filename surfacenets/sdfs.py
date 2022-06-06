@@ -285,14 +285,18 @@ class Box(Transform):
     Use the transform properties to adjust the shape and position.
     """
 
+    def __init__(
+        self, lengths: tuple[float, float, float], t_world_local: np.ndarray = None
+    ) -> None:
+        super().__init__(t_world_local)
+        self.half_lengths = np.asarray(lengths, dtype=np.float32) * 0.5
+
     def sample_local(self, x: np.ndarray) -> np.ndarray:
-        a = np.abs(x) - 1
+        a = np.abs(x) - self.half_lengths
         return np.linalg.norm(np.maximum(a, 0), axis=-1) + np.minimum(
             np.maximum(a[..., 0], np.maximum(a[..., 1], a[..., 2])), 0
         )
 
     @staticmethod
     def create(lengths: tuple[float, float, float] = (1.0, 1.0, 1.0)) -> "Box":
-        s = np.asarray(lengths, dtype=np.float32)
-        s = s * 0.5
-        return Box(maths.scale(s))
+        return Box(lengths)

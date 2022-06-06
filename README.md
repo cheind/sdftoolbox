@@ -37,7 +37,7 @@ scene = sn.sdfs.Union(
 )
 
 # Get some sampling locations
-xyz, spacing = sn.sample_volume()
+xyz, spacing = sn.sdfs.Discretized.sampling_coords()
 
 # Evaluate the SDF
 sdfv = scene.sample(xyz)
@@ -51,6 +51,12 @@ verts, faces = sn.surface_nets(
 )
 verts += xyz[0, 0, 0]
 ```
+
+generates
+
+<div align="center">
+<img src="doc/hello_surfacenets.svg" width="30%">
+</div>
 
 See [examples/hello_surfacenets.py](examples/hello_surfacenets.py) for details.
 

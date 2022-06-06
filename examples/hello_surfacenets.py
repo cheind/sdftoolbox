@@ -18,7 +18,7 @@ def main():
     # Generate the sampling locations. Here we use the default params
     xyz, spacing = sn.sdfs.Discretized.sampling_coords()
 
-    # Sample SDF
+    # Evaluate the SDF
     sdfv = scene.sample(xyz)
 
     # Extract the surface using quadliterals
@@ -36,7 +36,7 @@ def main():
     # Visualize
     import matplotlib.pyplot as plt
 
-    plt.style.use("dark_background")
+    # plt.style.use("dark_background")
     fig, ax = sn.plotting.create_mesh_figure(verts, faces)
     plt.show()
 

@@ -18,7 +18,7 @@ def main():
     scene = sn.sdfs.Sphere.create([0, 0, 0], 1.0)
     scene = sn.sdfs.Displacement(scene, lambda xyz: 0.15 * np.sin(10 * xyz).prod(-1))
 
-    # Define the sampling locations. Here we use the default params
+    # Define the sampling locations.
     xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(60, 60, 60))
 
     # Evaluate the SDF

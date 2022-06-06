@@ -5,6 +5,9 @@ def compute_face_normals(verts: np.ndarray, faces: np.ndarray) -> np.ndarray:
     """Computes face normals for the given mesh.
 
     This assumes that faces are ordered ccw when viewed from the face normal.
+    Note that vertices of quads are not guaranteed to be coplanar and hence normals
+    depend on which vertices are chosen. This implementation uses always the the first,
+    the second and the last vertex to estimate a normal.
 
     Params:
         verts: (N,3) array of vertices

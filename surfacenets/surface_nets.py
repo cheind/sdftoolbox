@@ -16,11 +16,14 @@ def surface_nets(
     vertex_placement_mode: Literal["midpoint", "naive"] = "naive",
     triangulate: bool = False,
 ):
-    """SurfaceNet algorithm for isosurface extraction from discrete signed distance fields.
+    """SurfaceNet algorithm for isosurface extraction from discrete signed
+    distance fields.
 
-    This implementation approximates the relaxation based vertex placement method of [1] using a `naive` [2] average. This method is fully vectorized.
+    This implementation approximates the relaxation based vertex placement
+    method of [1] using a `naive` [2] average. This method is fully vectorized.
 
-    This method does not compute surface normals. Use `surfacenets.normals` instead.
+    This method does not compute surface normals, see `surfacenets.normals`
+    for details.
 
     Params:
         sdf_values: (I,J,K) array if SDF values at sample locations
@@ -108,8 +111,7 @@ def surface_nets(
             t[active] = 0.5
 
         active_t = t[active, None]
-        with np.errstate(divide="ignore", invalid="ignore"):
-            isect = (1 - active_t) * sijk[active] + active_t * tijk[active]
+        isect = (1 - active_t) * sijk[active] + active_t * tijk[active]
 
         # We store the partial axis results in the global arrays in interleaved
         # fashion. We do this, to comply with np.unravel_index/np.ravel_multi_index
@@ -131,7 +133,6 @@ def surface_nets(
     active_quads, complete_mask = top.find_voxels_sharing_edge(
         active_edges
     )  # (A,4)
-    print(active_quads)
     active_edges = active_edges[complete_mask]
     active_quads = active_quads[complete_mask]
     _logger.debug(
@@ -169,8 +170,8 @@ def surface_nets(
     )
 
     # 3. Step - Postprocessing
-    # In case triangulation is required, we simply split each quad into two triangles.
-    # Since the vertex order in faces is ccw, that's easy too.
+    # In case triangulation is required, we simply split each quad into two
+    # triangles. Since the vertex order in faces is ccw, that's easy too.
     faces = faces.reshape(-1, 4)
     if triangulate:
         faces = triangulate_quads(faces)

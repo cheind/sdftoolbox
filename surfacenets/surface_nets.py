@@ -10,6 +10,29 @@ from .topology import VoxelTopology
 _logger = logging.getLogger("surfacenets")
 
 
+def compute_vertices_midpoint(
+    top: VoxelTopology, active_voxels: np.ndarray, edge_coords: np.ndarray
+) -> np.ndarray:
+    """Computes vertex locations based on voxel centers.
+    This results in Minecraft-like reconstructions.
+    """
+    sijk = top.unravel_nd(active_voxels, top.sample_shape)
+    return sijk + np.array([[0.5, 0.5, 0.5]], dtype=np.float32)
+
+
+def compute_vertices_surfacenets_naive(
+    top: VoxelTopology, active_voxels: np.ndarray, edge_coords: np.ndarray
+) -> np.ndarray:
+    """Computes vertex locations based on averaging edge intersection points.
+
+    Each vertex location is chosen to be the average of intersection points
+    of all active edges that belong to a voxel.
+    """
+    active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
+    e = edge_coords[active_voxel_edges]  # (M,12,3)
+    return np.nanmean(e, 1)
+
+
 def surface_nets(
     sdf_values: np.ndarray,
     spacing: tuple[float, float, float],
@@ -103,10 +126,7 @@ def surface_nets(
         active = np.logical_and(t >= 0, t < 1.0)  # t==1 is t==0 for next edge
         t[~active] = np.nan
 
-        # Vertex placements are chosen by averaging intersection points
-        # of active edges belonging to a voxel. In case we wish to get Minecraft
-        # like results, we can simply set the the intersection to the midpoint
-        # of an edge.
+        #
         if vertex_placement_mode == "midpoint":
             t[active] = 0.5
 
@@ -157,19 +177,26 @@ def surface_nets(
     # the inverse array is already the flattened final face array.
     active_voxels, faces = np.unique(active_quads, return_inverse=True)  # (M,)
 
-    # For each active voxel, we find the 12 constituting edges and then compute the
-    # vertex location as the average of the edge intersection points of active edges.
-    # Note, non-active edges have a nan intersection point. We use np.nanmean to compute
-    # the mean only of finite values. Also note, we need take care of vertex locations
-    # being shifted by one voxel length due to padding.
-    active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
-    e = edges_isect_coords[active_voxel_edges]  # (M,12,3)
-    verts = (np.nanmean(e, 1) - (1, 1, 1)) * spacing  # (M,3)
+    # Step 3. Vertex locations
+    # For each active voxel, we need to find one vertex location. The
+    # method todo that depennds on `vertex_placement_mode`. No matter which method
+    # is selected, we expect the returned coordinates to be in voxel space.
+    if vertex_placement_mode == "midpoint":
+        verts = compute_vertices_midpoint(
+            top, active_voxels, edges_isect_coords
+        )
+    elif vertex_placement_mode == "naive":
+        verts = compute_vertices_surfacenets_naive(
+            top, active_voxels, edges_isect_coords
+        )
+    # Finally, we need to account for the padded voxels and scale them to
+    # data dimensions
+    verts = (verts - (1, 1, 1)) * spacing
     _logger.debug(
         f"After vertex computation; elapsed {time.perf_counter() - t0:.4f} secs"
     )
 
-    # 3. Step - Postprocessing
+    # 4. Step - Postprocessing
     # In case triangulation is required, we simply split each quad into two
     # triangles. Since the vertex order in faces is ccw, that's easy too.
     faces = faces.reshape(-1, 4)

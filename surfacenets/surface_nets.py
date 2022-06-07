@@ -27,16 +27,77 @@ def compute_vertices_surfacenets_naive(
 
     Each vertex location is chosen to be the average of intersection points
     of all active edges that belong to a voxel.
+
+    References:
+    - Gibson, Sarah FF. "Constrained elastic surface nets:
+    Generating smooth surfaces from binary segmented data."
+    Springer, Berlin, Heidelberg, 1998.
+    - https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/
     """
     active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
     e = edge_coords[active_voxel_edges]  # (M,12,3)
     return np.nanmean(e, 1)
 
 
+def compute_vertices_dual_contouring(
+    top: VoxelTopology,
+    active_voxels: np.ndarray,
+    edge_coords: np.ndarray,
+    edge_normals: np.ndarray,
+    center_bias: float = 1e-1,
+) -> np.ndarray:
+    """Computes vertex locations based on dual-contouring strategy.
+
+    This method additionally requires intersection normals. The idea
+    is to find (for each voxel) the location that agrees 'best' with
+    all intersection points/normals from from surrounding active edges.
+
+    Each interseciton point/normal consitutes a plane in 3d. A location
+    agrees with it when it lies on (close-to) the plane. A location
+    that agrees with all planes is considered the best.
+
+    In practice, this can be solved by linear least squares. However,
+    one need to ensures that resulting locations lie within voxels.
+
+    References:
+    - Ju, Tao, et al. "Dual contouring of hermite data."
+    Proceedings of the 29th annual conference on Computer
+    graphics and interactive techniques. 2002.
+    """
+    sijk = top.unravel_nd(active_voxels, top.sample_shape)  # (M,3)
+    active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
+    points = edge_coords[active_voxel_edges]  # (M,12,3)
+    normals = edge_normals[active_voxel_edges]  # (M,12,3)
+
+    # Consider a batched variant using block-diagonal matrices
+    verts = []
+    for off, p, n in zip(sijk, points, normals):
+        # v: (3,)
+        # p: (12,3)
+        # n: (12,3)
+        q = p - off[None, :]  # [0,1) range in each dim
+        mask = np.isfinite(p).all(-1)  # Skip non-active voxel edges
+        A = n[mask]  # (N,3)
+        b = (q[mask, None, :] @ n[mask, :, None]).squeeze()  # (N,)
+        # Pull towards center
+        C = np.eye(3, dtype=np.float32) * np.sqrt(center_bias)
+        d = np.ones(3, dtype=np.float32) * 0.5 * np.sqrt(center_bias)
+
+        x, res, rank, _ = np.linalg.lstsq(
+            np.concatenate((A, C), 0), np.concatenate((b, d), 0), rcond=None
+        )
+        x = np.clip(x, 0, 1.0)
+        verts.append(x + off)
+    return np.array(verts, dtype=np.float32)
+
+
 def surface_nets(
     sdf_values: np.ndarray,
     spacing: tuple[float, float, float],
-    vertex_placement_mode: Literal["midpoint", "naive"] = "naive",
+    normals: np.ndarray = None,
+    vertex_placement_mode: Literal[
+        "midpoint", "naive", "dual-contouring"
+    ] = "naive",
     triangulate: bool = False,
 ):
     """SurfaceNet algorithm for isosurface extraction from discrete signed
@@ -66,12 +127,16 @@ def surface_nets(
     """
     t0 = time.perf_counter()
     # Sanity checks
-    assert vertex_placement_mode in ["midpoint", "naive"]
+    assert vertex_placement_mode in ["midpoint", "naive", "dual-contouring"]
     assert sdf_values.ndim == 3
-    spacing = np.asarray(spacing, dtype=np.float32)
+    if vertex_placement_mode == "dual-contouring":
+        assert normals is not None, "dual-contouring requires normals"
+        assert normals.ndim == 4
+        assert normals.shape == sdf_values.shape + (3,)
 
     # First, we pad the sample volume on each side with a single (nan) value to
     # avoid having to deal with most out-of-bounds issues.
+    spacing = np.asarray(spacing, dtype=np.float32)
     sdf_values = np.pad(
         sdf_values,
         ((1, 1), (1, 1), (1, 1)),
@@ -98,6 +163,10 @@ def surface_nets(
     edges_isect_coords = np.full(
         (top.num_edges, 3), np.nan, dtype=sdf_values.dtype
     )
+    if normals is not None:
+        edges_isect_normals = np.full(
+            (top.num_edges, 3), np.nan, dtype=sdf_values.dtype
+        )
 
     # Get all possible edge source locations
     sijk = top.get_all_source_vertices()  # (N,3)
@@ -126,19 +195,21 @@ def surface_nets(
         active = np.logical_and(t >= 0, t < 1.0)  # t==1 is t==0 for next edge
         t[~active] = np.nan
 
-        #
-        if vertex_placement_mode == "midpoint":
-            t[active] = 0.5
-
         active_t = t[active, None]
-        isect = (1 - active_t) * sijk[active] + active_t * tijk[active]
+        isect_coords = (1 - active_t) * sijk[active] + active_t * tijk[active]
+        if normals is not None:
+            isect_normals = (1 - active_t) * normals[
+                si[active], sj[active], sk[active]
+            ] + active_t * normals[ti[active], tj[active], tk[active]]
 
         # We store the partial axis results in the global arrays in interleaved
         # fashion. We do this, to comply with np.unravel_index/np.ravel_multi_index
         # that are used internally by the topology module.
         edges_active_mask[aidx::3] = active
         edges_flip_mask[aidx::3][active] = sdf_diff[active] < 0.0
-        edges_isect_coords[aidx::3][active] = isect
+        edges_isect_coords[aidx::3][active] = isect_coords
+        if normals is not None:
+            edges_isect_normals[aidx::3][active] = isect_normals
 
     _logger.debug(
         f"After active edges; elapsed {time.perf_counter() - t0:.4f} secs"
@@ -188,6 +259,10 @@ def surface_nets(
     elif vertex_placement_mode == "naive":
         verts = compute_vertices_surfacenets_naive(
             top, active_voxels, edges_isect_coords
+        )
+    elif vertex_placement_mode == "dual-contouring":
+        verts = compute_vertices_dual_contouring(
+            top, active_voxels, edges_isect_coords, edges_isect_normals
         )
     # Finally, we need to account for the padded voxels and scale them to
     # data dimensions

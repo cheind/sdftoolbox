@@ -72,14 +72,10 @@ class SDF(abc.ABC):
     def merge(self, *others: list["SDF"], alpha: float = np.inf) -> "Union":
         return Union([self] + list(others), alpha=alpha)
 
-    def intersect(
-        self, *others: list["SDF"], alpha: float = np.inf
-    ) -> "Intersection":
+    def intersect(self, *others: list["SDF"], alpha: float = np.inf) -> "Intersection":
         return Intersection([self] + list(others), alpha=alpha)
 
-    def subtract(
-        self, *others: list["SDF"], alpha: float = np.inf
-    ) -> "Difference":
+    def subtract(self, *others: list["SDF"], alpha: float = np.inf) -> "Difference":
         return Difference([self] + list(others), alpha=alpha)
 
 
@@ -192,9 +188,7 @@ class Difference(SDF):
 class Displacement(SDF):
     """Displaces a SDF node by function modifier."""
 
-    def __init__(
-        self, node: SDF, dispfn: Callable[[np.ndarray], float]
-    ) -> None:
+    def __init__(self, node: SDF, dispfn: Callable[[np.ndarray], float]) -> None:
         self.dispfn = dispfn
         self.node = node
 
@@ -229,9 +223,7 @@ class Repetition(SDF):
         return self.node.sample(x)
 
     def _repeat_finite(self, x: np.ndarray) -> np.ndarray:
-        x = x - self.periods * np.clip(
-            np.round(x / self.periods), 0, self.reps - 1
-        )
+        x = x - self.periods * np.clip(np.round(x / self.periods), 0, self.reps - 1)
         return self.node.sample(x)
 
 
@@ -332,10 +324,7 @@ class Discretized(Transform):
         # See https://en.wikipedia.org/wiki/Trilinear_interpolation
         # i-diretion
         si, sj, sk = sijk.T
-        c00 = (
-            vol[si, sj, sk] * (1 - w[..., 0:1])
-            + vol[si + 1, sj, sk] * w[..., 0:1]
-        )
+        c00 = vol[si, sj, sk] * (1 - w[..., 0:1]) + vol[si + 1, sj, sk] * w[..., 0:1]
         print((vol[si, sj, sk] * (1 - w[..., 0:1])).shape)
         c01 = (
             vol[si, sj, sk + 1] * (1 - w[..., 0:1])
@@ -464,7 +453,7 @@ class Box(Transform):
     def sample_local(self, x: np.ndarray) -> np.ndarray:
         a = np.abs(x) - self.half_lengths
         return np.linalg.norm(np.maximum(a, 0), axis=-1) + np.minimum(
-            np.maximum(a[..., 0], np.maximum(a[..., 1], a[..., 2])), 0
+            np.max(a, axis=-1), 0
         )
 
     @staticmethod

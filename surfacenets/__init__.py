@@ -5,3 +5,4 @@ from . import plotting
 from . import normals
 from . import io
 from . import tesselation
+from . import maths

@@ -24,6 +24,24 @@ def test_plane():
     assert np.allclose(sdfv, [-1.0, -2.0, 0.0], atol=1e-5)
 
 
+def test_box():
+    scene = sn.sdfs.Box.create((1, 1, 1))
+
+    sdfv = scene.sample(
+        np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [-0.5, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [-0.5, -0.5, -0.5],
+                [0.5, 0.5, 0.5],
+                [1.0, 1.0, 1.0],
+            ]
+        )
+    )
+    assert np.allclose(sdfv, [-0.5, 0.0, 0.5, 0.0, 0.0, 0.8660254], atol=1e-3)
+
+
 def test_gradients():
     scene = sn.sdfs.Sphere.create(radius=1)
     analytic = lambda x: x / np.linalg.norm(x, axis=-1, keepdims=True)

@@ -170,6 +170,7 @@ def create_mesh_figure(
     faces: np.ndarray,
     face_normals: np.ndarray = None,
     vertex_normals: np.ndarray = None,
+    fig_kwargs: dict = None,
 ):
     """Helper to quickly plot a single mesh.
 
@@ -191,7 +192,9 @@ def create_mesh_figure(
     min_corner = verts.min(0) - 0.5
     max_corner = verts.max(0) + 0.5
 
-    fig, ax = create_figure()
+    fig_kwargs = fig_kwargs or {}
+
+    fig, ax = create_figure(**fig_kwargs)
     plot_mesh(ax, verts, faces, face_normals, vertex_normals)
     setup_axes(ax, min_corner, max_corner)
     return fig, ax

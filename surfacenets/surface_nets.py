@@ -69,14 +69,18 @@ def surface_nets(
 
     edges_active_mask = np.zeros((top.num_edges,), dtype=bool)
     edges_flip_mask = np.zeros((top.num_edges,), dtype=bool)
-    edges_isect_coords = np.full((top.num_edges, 3), np.nan, dtype=sdf_values.dtype)
+    edges_isect_coords = np.full(
+        (top.num_edges, 3), np.nan, dtype=sdf_values.dtype
+    )
 
     # Get all possible edge source locations
     sijk = top.get_all_source_vertices()  # (N,3)
     si, sj, sk = sijk.T
     sdf_src = sdf_values[si, sj, sk]  # (N,)
 
-    _logger.debug(f"After initialization; elapsed {time.perf_counter() - t0:.4f} secs")
+    _logger.debug(
+        f"After initialization; elapsed {time.perf_counter() - t0:.4f} secs"
+    )
 
     # For each axis
     for aidx, off in enumerate(np.eye(3, dtype=np.int32)):
@@ -93,7 +97,7 @@ def surface_nets(
         sdf_diff = sdf_dst - sdf_src
         sdf_diff[sdf_diff == 0] = 1e-8
         t = -sdf_src / sdf_diff
-        active = np.logical_and(t >= 0, t <= 1.0)
+        active = np.logical_and(t >= 0, t < 1.0)  # t==1 is t==0 for next edge
         t[~active] = np.nan
 
         # Vertex placements are chosen by averaging intersection points
@@ -114,7 +118,9 @@ def surface_nets(
         edges_flip_mask[aidx::3][active] = sdf_diff[active] < 0.0
         edges_isect_coords[aidx::3][active] = isect
 
-    _logger.debug(f"After active edges; elapsed {time.perf_counter() - t0:.4f} secs")
+    _logger.debug(
+        f"After active edges; elapsed {time.perf_counter() - t0:.4f} secs"
+    )
 
     # 2. Step - Tesselation
     # Each active edge gives rise to a quad that is formed by the final vertices of the
@@ -122,17 +128,24 @@ def surface_nets(
     # where a full neighborhood exists - i.e non of the adjacent voxels is in the
     # padding area.
     active_edges = np.where(edges_active_mask)[0]  # (A,)
-    active_quads, complete_mask = top.find_voxels_sharing_edge(active_edges)  # (A,4)
+    active_quads, complete_mask = top.find_voxels_sharing_edge(
+        active_edges
+    )  # (A,4)
+    print(active_quads)
     active_edges = active_edges[complete_mask]
     active_quads = active_quads[complete_mask]
-    _logger.debug(f"After finding quads; elapsed {time.perf_counter() - t0:.4f} secs")
+    _logger.debug(
+        f"After finding quads; elapsed {time.perf_counter() - t0:.4f} secs"
+    )
 
     # The active quad indices are are ordered ccw when looking from the positive
     # active edge direction. In case the sign difference is negative between edge
     # start and end, we need to reverse the indices to maintain a correct ccw
     # winding order.
     active_edges_flip = edges_flip_mask[active_edges]
-    active_quads[active_edges_flip] = np.flip(active_quads[active_edges_flip], -1)
+    active_quads[active_edges_flip] = np.flip(
+        active_quads[active_edges_flip], -1
+    )
     _logger.debug(
         f"After correcting quads; elapsed {time.perf_counter() - t0:.4f} secs"
     )

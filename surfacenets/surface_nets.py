@@ -44,7 +44,7 @@ def compute_vertices_dual_contouring(
     active_voxels: np.ndarray,
     edge_coords: np.ndarray,
     edge_normals: np.ndarray,
-    center_bias: float = 1e-1,
+    bias_strength: float = 1e-1,
 ) -> np.ndarray:
     """Computes vertex locations based on dual-contouring strategy.
 
@@ -56,8 +56,31 @@ def compute_vertices_dual_contouring(
     agrees with it when it lies on (close-to) the plane. A location
     that agrees with all planes is considered the best.
 
-    In practice, this can be solved by linear least squares. However,
-    one need to ensures that resulting locations lie within voxels.
+    In practice, this can be solved by linear least squares. Consider
+    an isect location p and isect normal n. Then, we'd like to find
+    x, such that
+
+        n^T(x-p) = 0
+
+    which we can rearrange as follows
+
+        n^Tx -n^Tp = 0
+        n^Tx = n^Tp
+
+    and concatenate (for multiple p, n pairs as) into
+
+        Ax = b
+
+    which we solve using least squares. However, one need to ensures that
+    resulting locations lie within voxels. We do this by biasing the
+    linear system to the naive SurfaceNets solution using additional
+    equations of the form
+
+        ei^Tx = bias[0]
+        ej^Tx = bias[1]
+        ek^Tx = bias[2]
+
+    wher e(i,j,k) are the canonical unit vectors.
 
     References:
     - Ju, Tao, et al. "Dual contouring of hermite data."
@@ -68,20 +91,26 @@ def compute_vertices_dual_contouring(
     active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
     points = edge_coords[active_voxel_edges]  # (M,12,3)
     normals = edge_normals[active_voxel_edges]  # (M,12,3)
+    bias_verts = compute_vertices_surfacenets_naive(
+        top, active_voxels, edge_coords
+    )
 
     # Consider a batched variant using block-diagonal matrices
     verts = []
-    for off, p, n in zip(sijk, points, normals):
+    for off, p, n, bias in zip(sijk, points, normals, bias_verts):
+        print("off", off)
+        print(p)
+        print(n)
         # v: (3,)
         # p: (12,3)
         # n: (12,3)
         q = p - off[None, :]  # [0,1) range in each dim
         mask = np.isfinite(p).all(-1)  # Skip non-active voxel edges
         A = n[mask]  # (N,3)
-        b = (q[mask, None, :] @ n[mask, :, None]).squeeze()  # (N,)
-        # Pull towards center
-        C = np.eye(3, dtype=np.float32) * np.sqrt(center_bias)
-        d = np.ones(3, dtype=np.float32) * 0.5 * np.sqrt(center_bias)
+        b = (q[mask, None, :] @ n[mask, :, None]).reshape(-1)  # (N,)
+        # Bias terms
+        C = np.eye(3, dtype=np.float32) * np.sqrt(bias_strength)
+        d = (bias - off) * np.sqrt(bias_strength)
 
         x, res, rank, _ = np.linalg.lstsq(
             np.concatenate((A, C), 0), np.concatenate((b, d), 0), rcond=None
@@ -143,6 +172,13 @@ def surface_nets(
         mode="constant",
         constant_values=np.nan,
     )
+    if normals is not None:
+        normals = np.pad(
+            normals,
+            ((1, 1), (1, 1), (1, 1), (0, 0)),
+            mode="constant",
+            constant_values=np.nan,
+        )
     _logger.debug(f"After padding; elapsed {time.perf_counter() - t0:.4f} secs")
 
     # 1. Step - Active Edges
@@ -262,7 +298,11 @@ def surface_nets(
         )
     elif vertex_placement_mode == "dual-contouring":
         verts = compute_vertices_dual_contouring(
-            top, active_voxels, edges_isect_coords, edges_isect_normals
+            top,
+            active_voxels,
+            edges_isect_coords,
+            edges_isect_normals,
+            bias_strength=1e-1,
         )
     # Finally, we need to account for the padded voxels and scale them to
     # data dimensions

@@ -1,11 +1,13 @@
 import logging
 import time
-from typing import Literal
+from typing import Literal, Union
 
 import numpy as np
 
 from .tesselation import triangulate_quads
 from .topology import VoxelTopology
+from .sdfs import SDF
+
 
 _logger = logging.getLogger("surfacenets")
 
@@ -91,16 +93,11 @@ def compute_vertices_dual_contouring(
     active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
     points = edge_coords[active_voxel_edges]  # (M,12,3)
     normals = edge_normals[active_voxel_edges]  # (M,12,3)
-    bias_verts = compute_vertices_surfacenets_naive(
-        top, active_voxels, edge_coords
-    )
+    bias_verts = compute_vertices_surfacenets_naive(top, active_voxels, edge_coords)
 
     # Consider a batched variant using block-diagonal matrices
     verts = []
     for off, p, n, bias in zip(sijk, points, normals, bias_verts):
-        print("off", off)
-        print(p)
-        print(n)
         # v: (3,)
         # p: (12,3)
         # n: (12,3)
@@ -122,11 +119,10 @@ def compute_vertices_dual_contouring(
 
 def surface_nets(
     sdf_values: np.ndarray,
+    min_corner: np.ndarray,
     spacing: tuple[float, float, float],
-    normals: np.ndarray = None,
-    vertex_placement_mode: Literal[
-        "midpoint", "naive", "dual-contouring"
-    ] = "naive",
+    normals: Union[np.ndarray, SDF] = None,
+    vertex_placement_mode: Literal["midpoint", "naive", "dualcontour"] = "naive",
     triangulate: bool = False,
 ):
     """SurfaceNet algorithm for isosurface extraction from discrete signed
@@ -141,6 +137,11 @@ def surface_nets(
     Params:
         sdf_values: (I,J,K) array if SDF values at sample locations
         spacing: The spatial step size in each dimension
+        normals: (I,J,K,3) array or scene SDF node. Normals are only required for
+            dual-contouring. When possible provide a SDF to compute normals for
+            edge intersection points exactly. When passing normals for sampling
+            coordinates, the edge intersection normal will be interpolated, which
+            might lead to less sharp results.
         vertex_placement_mode: Defines how vertices are placed inside of voxels. Use
             `naive` (default) for a good approximation, or `midpoint` to get Minecraft like
             box reconstructions.
@@ -156,12 +157,13 @@ def surface_nets(
     """
     t0 = time.perf_counter()
     # Sanity checks
-    assert vertex_placement_mode in ["midpoint", "naive", "dual-contouring"]
+    assert vertex_placement_mode in ["midpoint", "naive", "dualcontour"]
     assert sdf_values.ndim == 3
-    if vertex_placement_mode == "dual-contouring":
+    if vertex_placement_mode == "dualcontour":
         assert normals is not None, "dual-contouring requires normals"
-        assert normals.ndim == 4
-        assert normals.shape == sdf_values.shape + (3,)
+        if isinstance(normals, np.ndarray):
+            assert normals.ndim == 4
+            assert normals.shape == sdf_values.shape + (3,)
 
     # First, we pad the sample volume on each side with a single (nan) value to
     # avoid having to deal with most out-of-bounds issues.
@@ -172,7 +174,7 @@ def surface_nets(
         mode="constant",
         constant_values=np.nan,
     )
-    if normals is not None:
+    if isinstance(normals, np.ndarray):
         normals = np.pad(
             normals,
             ((1, 1), (1, 1), (1, 1), (0, 0)),
@@ -196,9 +198,7 @@ def surface_nets(
 
     edges_active_mask = np.zeros((top.num_edges,), dtype=bool)
     edges_flip_mask = np.zeros((top.num_edges,), dtype=bool)
-    edges_isect_coords = np.full(
-        (top.num_edges, 3), np.nan, dtype=sdf_values.dtype
-    )
+    edges_isect_coords = np.full((top.num_edges, 3), np.nan, dtype=sdf_values.dtype)
     if normals is not None:
         edges_isect_normals = np.full(
             (top.num_edges, 3), np.nan, dtype=sdf_values.dtype
@@ -209,9 +209,7 @@ def surface_nets(
     si, sj, sk = sijk.T
     sdf_src = sdf_values[si, sj, sk]  # (N,)
 
-    _logger.debug(
-        f"After initialization; elapsed {time.perf_counter() - t0:.4f} secs"
-    )
+    _logger.debug(f"After initialization; elapsed {time.perf_counter() - t0:.4f} secs")
 
     # For each axis
     for aidx, off in enumerate(np.eye(3, dtype=np.int32)):
@@ -233,10 +231,19 @@ def surface_nets(
 
         active_t = t[active, None]
         isect_coords = (1 - active_t) * sijk[active] + active_t * tijk[active]
-        if normals is not None:
+        if isinstance(normals, np.ndarray):
+            # TODO: Interpolate normal. Note, this is suboptimal. Linear interpolation
+            # might lead to zero crossings. Better: use slerps or even better
+            # have a normals provider function as input (see below) for which we can also use
+            # the SDF gradients directly when available.
             isect_normals = (1 - active_t) * normals[
                 si[active], sj[active], sk[active]
             ] + active_t * normals[ti[active], tj[active], tk[active]]
+            isect_normals /= np.linalg.norm(isect_normals, axis=-1, keepdims=True)
+        elif isinstance(normals, SDF):
+            isect_normals = normals.gradient(
+                (isect_coords - (1, 1, 1)) * spacing + min_corner, normalize=True
+            )
 
         # We store the partial axis results in the global arrays in interleaved
         # fashion. We do this, to comply with np.unravel_index/np.ravel_multi_index
@@ -247,9 +254,7 @@ def surface_nets(
         if normals is not None:
             edges_isect_normals[aidx::3][active] = isect_normals
 
-    _logger.debug(
-        f"After active edges; elapsed {time.perf_counter() - t0:.4f} secs"
-    )
+    _logger.debug(f"After active edges; elapsed {time.perf_counter() - t0:.4f} secs")
 
     # 2. Step - Tesselation
     # Each active edge gives rise to a quad that is formed by the final vertices of the
@@ -257,23 +262,17 @@ def surface_nets(
     # where a full neighborhood exists - i.e non of the adjacent voxels is in the
     # padding area.
     active_edges = np.where(edges_active_mask)[0]  # (A,)
-    active_quads, complete_mask = top.find_voxels_sharing_edge(
-        active_edges
-    )  # (A,4)
+    active_quads, complete_mask = top.find_voxels_sharing_edge(active_edges)  # (A,4)
     active_edges = active_edges[complete_mask]
     active_quads = active_quads[complete_mask]
-    _logger.debug(
-        f"After finding quads; elapsed {time.perf_counter() - t0:.4f} secs"
-    )
+    _logger.debug(f"After finding quads; elapsed {time.perf_counter() - t0:.4f} secs")
 
     # The active quad indices are are ordered ccw when looking from the positive
     # active edge direction. In case the sign difference is negative between edge
     # start and end, we need to reverse the indices to maintain a correct ccw
     # winding order.
     active_edges_flip = edges_flip_mask[active_edges]
-    active_quads[active_edges_flip] = np.flip(
-        active_quads[active_edges_flip], -1
-    )
+    active_quads[active_edges_flip] = np.flip(active_quads[active_edges_flip], -1)
     _logger.debug(
         f"After correcting quads; elapsed {time.perf_counter() - t0:.4f} secs"
     )
@@ -289,24 +288,23 @@ def surface_nets(
     # method todo that depennds on `vertex_placement_mode`. No matter which method
     # is selected, we expect the returned coordinates to be in voxel space.
     if vertex_placement_mode == "midpoint":
-        verts = compute_vertices_midpoint(
-            top, active_voxels, edges_isect_coords
-        )
+        verts = compute_vertices_midpoint(top, active_voxels, edges_isect_coords)
     elif vertex_placement_mode == "naive":
         verts = compute_vertices_surfacenets_naive(
             top, active_voxels, edges_isect_coords
         )
-    elif vertex_placement_mode == "dual-contouring":
+    elif vertex_placement_mode == "dualcontour":
         verts = compute_vertices_dual_contouring(
             top,
             active_voxels,
             edges_isect_coords,
             edges_isect_normals,
-            bias_strength=1e-1,
+            # bias_strength=1e-2,  # biasing can lead to shrinkage.
+            bias_strength=1e-3,
         )
     # Finally, we need to account for the padded voxels and scale them to
     # data dimensions
-    verts = (verts - (1, 1, 1)) * spacing
+    verts = (verts - (1, 1, 1)) * spacing + min_corner
     _logger.debug(
         f"After vertex computation; elapsed {time.perf_counter() - t0:.4f} secs"
     )

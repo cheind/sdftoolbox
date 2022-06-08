@@ -348,8 +348,8 @@ class Discretized(Transform):
     @staticmethod
     def sampling_coords(
         res: tuple[int, int, int] = (60, 60, 60),
-        min_corner: tuple[float, float, float] = (-2, -2, -2),
-        max_corner: tuple[float, float, float] = (2, 2, 2),
+        min_corner: tuple[float, float, float] = (-1, -1, -1),
+        max_corner: tuple[float, float, float] = (1, 1, 1),
         dtype=np.float32,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Generates volumentric sampling locations.

@@ -1,5 +1,10 @@
 # flake8: noqa
-from .surface_nets import surface_nets
+from .dual_isosurfaces import dual_isosurface
+from .dual_strategies import (
+    MidpointStrategy,
+    NaiveSurfaceNetStrategy,
+    DualContouringStrategy,
+)
 from . import sdfs
 from . import plotting
 from . import normals

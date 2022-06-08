@@ -1,7 +1,7 @@
 import numpy as np
 import abc
 import dataclasses
-from typing import Optional
+from typing import Literal, Optional
 
 from .topology import VoxelTopology
 from .sdfs import SDF
@@ -98,36 +98,41 @@ class DualContouringStrategy(DualVertexStrategy):
         node: SDF,
         spacing: tuple[float, float, float],
         min_corner: np.ndarray,
+        bias_mode: Literal["always", "failed", "disabled"] = "always",
         bias_strength: float = 1e-3,
     ):
+        assert bias_mode in ["always", "failed", "disabled"]
         self.node = node
         self.bias_strength = bias_strength
         self.sqrt_bias_strength = np.sqrt(self.bias_strength)
         self.spacing = spacing
         self.min_corner = min_corner
+        self.bias_mode = bias_mode
 
     def find_vertex_locations(self, ctx: SurfaceContext) -> np.ndarray:
         sijk = ctx.top.unravel_nd(ctx.active_voxels, ctx.top.sample_shape)  # (M,3)
         active_voxel_edges = ctx.top.find_voxel_edges(ctx.active_voxels)  # (M,12)
         points = ctx.edge_coords[active_voxel_edges]  # (M,12,3)
         normals = self.node.gradient(self._to_data(points), normalize=True)  # (M,12,3)
-        if self.bias_strength > 0:
+        if self.bias_mode != "disabled":
             bias_verts = NaiveSurfaceNetStrategy().find_vertex_locations(ctx)
         else:
             bias_verts = [None] * len(points)
 
         # Consider a batched variant using block-diagonal matrices
         verts = []
+        bias_always = self.bias_mode == "always"
+        bias_failed = self.bias_mode == "failed"
         for off, p, n, bias in zip(sijk, points, normals, bias_verts):
             # off: (3,), p: (12,3), n: (12,3), bias: (3,)
             q = p - off[None, :]  # [0,1) range in each dim
             mask = np.isfinite(q).all(-1)  # Skip non-active voxel edges
 
             # Try to solve unbiased
-            x = self._solve_lst(q[mask], n[mask], bias=None)
-            failed = (x < 0.0).any() or (x > 1.0).any()
-            if failed and bias is not None:
-                # If failed, we try a biased solution
+            x = self._solve_lst(
+                q[mask], n[mask], bias=(bias - off) if bias_always else None
+            )
+            if bias_failed and (x < 0.0).any() or (x > 1.0).any():
                 x = self._solve_lst(q[mask], n[mask], bias=(bias - off))
             x = np.clip(x, 0.0, 1.0)
             verts.append(x + off)

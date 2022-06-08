@@ -22,10 +22,10 @@ def main():
     sdfv = scene.sample(xyz)
 
     # Extract the surface using quadliterals
-    verts, faces = sn.surface_nets(
+    verts, faces = sn.dual_isosurface(
         sdfv,
         spacing=spacing,
-        vertex_placement_mode="naive",
+        strategy=sn.NaiveSurfaceNetStrategy(),
         triangulate=False,
     )
     verts += xyz[0, 0, 0]

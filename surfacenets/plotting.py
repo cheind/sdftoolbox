@@ -165,6 +165,13 @@ def plot_mesh(
         add_normals_plot(verts, vertex_normals, "lime")
 
 
+def plot_samples(
+    ax,
+    xyz: np.ndarray,
+):
+    ax.scatter(xyz[..., 0], xyz[..., 1], xyz[..., 2], s=2, color="k", alpha=0.5)
+
+
 def create_mesh_figure(
     verts: np.ndarray,
     faces: np.ndarray,

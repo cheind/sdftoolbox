@@ -58,23 +58,25 @@ def scale(values: np.ndarray) -> np.ndarray:
     return m
 
 
+def _skew(a):
+    return np.array(
+        [[0, -a[2], a[1]], [a[2], 0, -a[0]], [-a[1], a[0], 0]], dtype=a.dtype
+    )
+
+
 def rotate(axis: np.ndarray, angle: float) -> np.ndarray:
     """Construct a rotation matrix given axis/angle pair."""
-    axis = np.asarray(axis)
+    # See
+    # https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
+    axis = np.asarray(axis, dtype=np.float32)
     sina = np.sin(angle)
     cosa = np.cos(angle)
     d = axis / np.linalg.norm(axis)
-    # rotation matrix around unit vector
-    R = np.diag([cosa, cosa, cosa])
-    R += np.outer(d, d) * (1.0 - cosa)
-    ds = d * sina
-    R += np.array(
-        [
-            [0.0, -ds[2], ds[1]],
-            [ds[2], 0.0, -ds[0]],
-            [-ds[1], ds[0], 0.0],
-        ],
-        dtype=axis.dtype,
+
+    R = (
+        cosa * np.eye(3, dtype=np.float32)
+        + sina * _skew(d)
+        + (1 - cosa) * np.outer(d, d)
     )
     m = np.eye(4, dtype=R.dtype)
     m[:3, :3] = R

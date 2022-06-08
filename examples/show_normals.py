@@ -2,20 +2,22 @@
 
 import matplotlib.pyplot as plt
 import surfacenets as sn
+import numpy as np
 
 
 def main():
 
     # Setup the scene
-    scene = sn.sdfs.Sphere.create()
+    scene = sn.sdfs.Box.create()
+    # scene.t_world_local = sn.maths.rotate([1, 1, 1], 0.78)
     xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(10, 10, 10))
 
     # Generate mesh
     sdfv = scene.sample(xyz)
-    verts, faces = sn.surface_nets(
+    verts, faces = sn.dual_isosurface(
         sdfv,
         spacing=spacing,
-        vertex_placement_mode="naive",
+        strategy=sn.NaiveSurfaceNetStrategy(),
         triangulate=False,
     )
     verts += xyz[0, 0, 0]

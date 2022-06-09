@@ -31,7 +31,7 @@ class SDF(abc.ABC):
     def gradient(
         self,
         x: np.ndarray,
-        h: float = 1e-5,
+        h: float = 1e-8,
         normalize: bool = False,
         mode: Literal["central"] = "central",
     ) -> np.ndarray:

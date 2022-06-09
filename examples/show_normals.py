@@ -38,7 +38,7 @@ def main():
     # Plot mesh+normals
     fig, ax = sn.plotting.create_mesh_figure(verts, faces, face_normals, vert_normals)
     sn.plotting.plot_samples(ax, xyz, sdfv)
-    sn.plotting.generate_rotation_gif("normals.gif", fig, ax)
+    # sn.plotting.generate_rotation_gif("normals.gif", fig, ax)
     plt.show()
 
 

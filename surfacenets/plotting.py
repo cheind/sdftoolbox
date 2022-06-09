@@ -165,11 +165,13 @@ def plot_mesh(
         add_normals_plot(verts, vertex_normals, "lime")
 
 
-def plot_samples(
-    ax,
-    xyz: np.ndarray,
-):
-    ax.scatter(xyz[..., 0], xyz[..., 1], xyz[..., 2], s=2, color="k", alpha=0.5)
+def plot_samples(ax, xyz: np.ndarray, sdf_values: np.ndarray = None):
+    colors = np.zeros_like(xyz)
+    if sdf_values is not None:
+        colors[sdf_values <= 0] = (1.0, 1.0, 0.0)
+    ax.scatter(
+        xyz[..., 0], xyz[..., 1], xyz[..., 2], s=2, c=colors.reshape(-1, 3), alpha=0.5
+    )
 
 
 def create_mesh_figure(

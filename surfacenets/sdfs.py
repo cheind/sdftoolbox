@@ -5,7 +5,6 @@ Tools to create, manipulate and sample continuous signed distance functions in 3
 from argparse import ArgumentError
 from typing import Callable, Literal
 import numpy as np
-import numpy.typing as npt
 import abc
 
 from . import maths
@@ -84,9 +83,9 @@ class SDF(abc.ABC):
 class Transform(SDF):
     """Base for nodes with transforms.
 
-    Most of the primitives nodes are defined in terms of a canonical shape (unit sphere, xy-plane). The transform allows you to arbitrarily shift, rotate and scale them to your needs.
-
-    When inheriting from Transform, you need to implement `sample_local` instead of `sample`.
+    Most of the primitives nodes are defined in terms of a canonical shape
+    (unit sphere, xy-plane). The transform allows you to shift,
+    rotate and isotropically scale them to your needs.
     """
 
     def __init__(self, node: SDF, t_world_local: np.ndarray = None) -> None:
@@ -303,9 +302,9 @@ class Discretized(SDF):
 
     @staticmethod
     def sampling_coords(
-        res: tuple[int, int, int] = (60, 60, 60),
-        min_corner: tuple[float, float, float] = (-1, -1, -1),
-        max_corner: tuple[float, float, float] = (1, 1, 1),
+        res: tuple[int, int, int] = (40, 40, 40),
+        min_corner: tuple[float, float, float] = (-1.5, -1.5, -1.5),
+        max_corner: tuple[float, float, float] = (1.5, 1.5, 1.5),
     ) -> tuple[np.ndarray, np.ndarray]:
         """Generates volumentric sampling locations.
 

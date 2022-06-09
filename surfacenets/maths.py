@@ -1,5 +1,4 @@
 import numpy as np
-import numpy.typing as npt
 from typing import TypeVar, Any
 
 from .types import float_dtype
@@ -36,13 +35,13 @@ def generalized_max(x: np.ndarray, axis: ShapeLike = None, alpha: float = np.inf
 
 
 def hom(v, value=1):
-    """Returns v as homogeneous vectors"""
+    """Returns v as homogeneous vectors."""
     v = np.asanyarray(v, dtype=float_dtype)
     return np.insert(v, v.shape[-1], value, axis=-1)
 
 
 def dehom(a):
-    """Makes homogeneous vectors inhomogenious by dividing by the last element of the last axis"""
+    """Makes homogeneous vectors inhomogenious."""
     a = np.asfarray(a, dtype=float_dtype)
     return a[..., :-1] / a[..., None, -1]
 

@@ -5,7 +5,7 @@ import numpy as np
 
 from .tesselation import triangulate_quads
 from .topology import VoxelTopology
-from .dual_strategies import DualVertexStrategy, SurfaceContext
+from .dual_strategies import DualVertexStrategy, SurfaceContext, NaiveSurfaceNetStrategy
 from .types import float_dtype
 
 _logger = logging.getLogger("surfacenets")
@@ -14,7 +14,7 @@ _logger = logging.getLogger("surfacenets")
 def dual_isosurface(
     sdf_values: np.ndarray,
     spacing: tuple[float, float, float],
-    strategy: DualVertexStrategy,
+    strategy: DualVertexStrategy = None,
     triangulate: bool = False,
 ):
     """A vectorized dual iso-surface extraction algorithm for signed distance fields.
@@ -28,26 +28,23 @@ def dual_isosurface(
     Params:
         sdf_values: (I,J,K) array if SDF values at sample locations
         spacing: The spatial step size in each dimension
-        normals: (I,J,K,3) array or scene SDF node. Normals are only required for
-            dual-contouring. When possible provide a SDF to compute normals for
-            edge intersection points exactly. When passing normals for sampling
-            coordinates, the edge intersection normal will be interpolated, which
-            might lead to less sharp results.
-        vertex_placement_mode: Defines how vertices are placed inside of voxels. Use
-            `naive` (default) for a good approximation, or `midpoint` to get Minecraft like
-            box reconstructions.
+        strategy: Defines how vertices are placed inside of voxels. Defaults to naive
+            surface nets.
         triangulate: When true, returns triangles instead of quadliterals.
 
     Returns:
         verts: (N,3) array of vertices
-        faces: (M,F) index array of faces into vertices. For quadliterals F is 4, otherwise 3.
+        faces: (M,F) index array of faces into vertices. For quadliterals F is 4,
+            otherwise 3.
 
     References:
-        1. Gibson, S. F. F. (1999). Constrained elastic surfacenets: Generating smooth models from binary segmented data.
-        1. Naive SurfaceNets: https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/
+        Gibson, S. F. F. (1999). Constrained elastic surfacenets: Generating smooth
+            models from binary segmented data.
     """
     t0 = time.perf_counter()
     # Sanity checks
+    if strategy is None:
+        strategy = NaiveSurfaceNetStrategy()
     assert sdf_values.ndim == 3
 
     # First, we pad the sample volume on each side with a single (nan) value to

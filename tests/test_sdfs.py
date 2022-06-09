@@ -25,7 +25,7 @@ def test_plane():
 
 
 def test_box():
-    scene = sn.sdfs.Box.create((1, 1, 1))
+    scene = sn.sdfs.Box((1, 1, 1))
 
     sdfv = scene.sample(
         np.array(
@@ -40,6 +40,29 @@ def test_box():
         )
     )
     assert np.allclose(sdfv, [-0.5, 0.0, 0.5, 0.0, 0.0, 0.8660254], atol=1e-3)
+
+    scene = sn.sdfs.Box((1.1, 1.1, 1.1))
+    sdfv = scene.sample(
+        np.array(
+            [
+                [-1.0, 0.0, 0.0],
+                [-0.333333333333, 0.0, 0.0],
+            ]
+        )
+    )
+    assert np.allclose(sdfv, [0.45, -0.216666667], atol=1e-3)
+
+    scene = sn.sdfs.Box((1.1, 1.1, 1.1))
+    scene = sn.sdfs.Transform(scene, sn.maths.rotate([1, 0, 0], np.pi / 4))
+    sdfv = scene.sample(
+        np.array(
+            [
+                [-1.0, 0.0, 0.0],
+                [-0.333333333333, 0.0, 0.0],
+            ]
+        )
+    )
+    assert np.allclose(sdfv, [0.45, -0.216666667], atol=1e-3)
 
 
 def test_gradients():

@@ -25,7 +25,7 @@ class VoxelTopology:
 
     """Offsets for computing voxel indices neighboring a given edge.
     The ordering is such that voxel indices are CCW when looking from
-    positive edge dir, always starting with maximum voxel index.    
+    positive edge dir, always starting with maximum voxel index.
     """
     EDGE_VOXEL_OFFSETS = np.array(
         [

@@ -6,14 +6,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
 
 
 def create_figure(
     proj_type: Literal["persp", "ortho"] = "persp",
     fig_aspect: float = 1,
-):
+    headless: bool = False,
+) -> Figure:
     """Returns a figure/axis for 3d plotting."""
-    fig = plt.figure(figsize=plt.figaspect(fig_aspect))
+    if headless:
+        fig = Figure(figsize=plt.figaspect(fig_aspect))
+    else:
+        fig = plt.figure(figsize=plt.figaspect(fig_aspect))
     ax = fig.add_subplot(111, projection="3d", computed_zorder=False)
     ax.set_proj_type(proj_type)
     return fig, ax
@@ -207,3 +213,30 @@ def create_mesh_figure(
     plot_mesh(ax, verts, faces, face_normals, vertex_normals)
     setup_axes(ax, min_corner, max_corner)
     return fig, ax
+
+
+def generate_rotation_gif(
+    filename: str,
+    fig: Figure,
+    ax,
+    azimuth_range: tuple[float, float] = (0, 2 * np.pi),
+    num_images: int = 64,
+    total_time: float = 5.0,
+):
+    import imageio
+
+    azimuth_incs = np.degrees(
+        np.linspace(azimuth_range[0], azimuth_range[1], num_images, endpoint=False)
+    )
+    azimuth0, elevation0 = ax.azim, ax.elev
+
+    with imageio.get_writer(
+        filename, mode="I", duration=total_time / num_images
+    ) as writer:
+        canvas = FigureCanvasAgg(fig)
+        for ainc in azimuth_incs:
+            ax.view_init(elev=elevation0, azim=azimuth0 + ainc)
+            canvas.draw()
+            buf = canvas.buffer_rgba()
+            img = np.asarray(buf)
+            writer.append_data(img)

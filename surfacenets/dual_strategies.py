@@ -5,6 +5,7 @@ from typing import Literal, Optional
 
 from .topology import VoxelTopology
 from .sdfs import SDF
+from .types import float_dtype
 
 
 @dataclasses.dataclass
@@ -28,7 +29,7 @@ class MidpointStrategy(DualVertexStrategy):
 
     def find_vertex_locations(self, ctx: SurfaceContext) -> np.ndarray:
         sijk = ctx.top.unravel_nd(ctx.active_voxels, ctx.top.sample_shape)
-        return sijk + np.array([[0.5, 0.5, 0.5]], dtype=np.float32)
+        return sijk + np.array([[0.5, 0.5, 0.5]], dtype=float_dtype)
 
 
 class NaiveSurfaceNetStrategy(DualVertexStrategy):
@@ -136,7 +137,7 @@ class DualContouringStrategy(DualVertexStrategy):
                 x = self._solve_lst(q[mask], n[mask], bias=(bias - off))
             x = np.clip(x, 0.0, 1.0)
             verts.append(x + off)
-        return np.array(verts, dtype=np.float32)
+        return np.array(verts, dtype=float_dtype)
 
     def _solve_lst(
         self, q: np.ndarray, n: np.ndarray, bias: Optional[np.ndarray]
@@ -148,8 +149,8 @@ class DualContouringStrategy(DualVertexStrategy):
             d = bias * np.sqrt(self.bias_strength)
             A = np.concatenate((A, C), 0)
             b = np.concatenate((b, d), 0)
-        x, res, rank, _ = np.linalg.lstsq(A, b, rcond=None)
-        return x
+        x, res, rank, _ = np.linalg.lstsq(A.astype(float), b.astype(float), rcond=None)
+        return x.astype(q.dtype)
 
     def _to_data(self, x: np.ndarray) -> np.ndarray:
         return (x - (1, 1, 1)) * self.spacing + self.min_corner

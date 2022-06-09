@@ -39,7 +39,7 @@ def compute_vertex_normals(
     """
     # Repeat face normal for each face vertex
     vertex_normals = np.zeros_like(verts)
-    vertex_counts = np.zeros((verts.shape[0]), dtype=verts.dtype)
+    vertex_counts = np.zeros((verts.shape[0]), dtype=int)
 
     for f, fn in zip(faces, face_normals):
         vertex_normals[f] += fn

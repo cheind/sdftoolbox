@@ -132,7 +132,7 @@ class DualContouringStrategy(DualVertexStrategy):
             x = self._solve_lst(
                 q[mask], n[mask], bias=(bias - off) if bias_always else None
             )
-            if bias_failed and (x < 0.0).any() or (x > 1.0).any():
+            if bias_failed and ((x < 0.0).any() or (x > 1.0).any()):
                 x = self._solve_lst(q[mask], n[mask], bias=(bias - off))
             x = np.clip(x, 0.0, 1.0)
             verts.append(x + off)

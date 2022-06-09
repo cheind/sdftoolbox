@@ -5,17 +5,16 @@ import surfacenets as sn
 def test_plane_normals():
     def gen_normals(n: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         scene = sn.sdfs.Plane.create((0.01, 0.01, 0.01), normal=n)
-        xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(3, 3, 3))
-        sdfv = scene.sample(xyz)
+        grid = sn.Grid(res=(3, 3, 3))
+        sdfv = scene.sample(grid.xyz)
 
         # Extract the surface using quadliterals
         verts, faces = sn.dual_isosurface(
             sdfv,
-            spacing=spacing,
+            grid,
             strategy=sn.NaiveSurfaceNetStrategy(),
             triangulate=False,
         )
-        verts += xyz[0, 0, 0]
         face_normals = sn.normals.compute_face_normals(verts, faces)
         vert_normals = sn.normals.compute_vertex_normals(verts, faces, face_normals)
         return face_normals, vert_normals

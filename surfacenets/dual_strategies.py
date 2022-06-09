@@ -1,24 +1,24 @@
 import numpy as np
 import abc
-import dataclasses
-from typing import Literal, Optional
+from typing import Literal, Optional, TYPE_CHECKING
 
-from .topology import VoxelTopology
-from .sdfs import SDF
 from .types import float_dtype
 
-
-@dataclasses.dataclass
-class SurfaceContext:
-    top: VoxelTopology
-    active_voxels: np.ndarray
-    edge_coords: np.ndarray
-    pass
+if TYPE_CHECKING:
+    from .grid import Grid
+    from .topology import VoxelTopology
+    from .sdfs import SDF
 
 
 class DualVertexStrategy(abc.ABC):
     @abc.abstractmethod
-    def find_vertex_locations(self, ctx: SurfaceContext) -> np.ndarray:
+    def find_vertex_locations(
+        self,
+        active_voxels: np.ndarray,
+        edge_coords: np.ndarray,
+        top: "VoxelTopology",
+        grid: "Grid",
+    ) -> np.ndarray:
         pass
 
 
@@ -27,8 +27,14 @@ class MidpointStrategy(DualVertexStrategy):
     This results in Minecraft-like reconstructions.
     """
 
-    def find_vertex_locations(self, ctx: SurfaceContext) -> np.ndarray:
-        sijk = ctx.top.unravel_nd(ctx.active_voxels, ctx.top.sample_shape)
+    def find_vertex_locations(
+        self,
+        active_voxels: np.ndarray,
+        top: "VoxelTopology",
+        grid: "Grid",
+        edge_coords: np.ndarray,
+    ) -> np.ndarray:
+        sijk = top.unravel_nd(active_voxels, top.sample_shape)
         return sijk + np.array([[0.5, 0.5, 0.5]], dtype=float_dtype)
 
 
@@ -45,10 +51,16 @@ class NaiveSurfaceNetStrategy(DualVertexStrategy):
     - https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/
     """
 
-    def find_vertex_locations(self, ctx: SurfaceContext) -> np.ndarray:
-        active_voxel_edges = ctx.top.find_voxel_edges(ctx.active_voxels)  # (M,12)
-        e = ctx.edge_coords[active_voxel_edges]  # (M,12,3)
-        return np.nanmean(e, 1)
+    def find_vertex_locations(
+        self,
+        active_voxels: np.ndarray,
+        edge_coords: np.ndarray,
+        top: "VoxelTopology",
+        grid: "Grid",
+    ) -> np.ndarray:
+        active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
+        e = edge_coords[active_voxel_edges]  # (M,12,3)
+        return np.nanmean(e, 1)  # (M,3)
 
 
 class DualContouringStrategy(DualVertexStrategy):
@@ -96,9 +108,7 @@ class DualContouringStrategy(DualVertexStrategy):
 
     def __init__(
         self,
-        node: SDF,
-        spacing: tuple[float, float, float],
-        min_corner: np.ndarray,
+        node: "SDF",
         bias_mode: Literal["always", "failed", "disabled"] = "always",
         bias_strength: float = 1e-3,
     ):
@@ -106,17 +116,25 @@ class DualContouringStrategy(DualVertexStrategy):
         self.node = node
         self.bias_strength = bias_strength
         self.sqrt_bias_strength = np.sqrt(self.bias_strength)
-        self.spacing = spacing
-        self.min_corner = min_corner
         self.bias_mode = bias_mode
 
-    def find_vertex_locations(self, ctx: SurfaceContext) -> np.ndarray:
-        sijk = ctx.top.unravel_nd(ctx.active_voxels, ctx.top.sample_shape)  # (M,3)
-        active_voxel_edges = ctx.top.find_voxel_edges(ctx.active_voxels)  # (M,12)
-        points = ctx.edge_coords[active_voxel_edges]  # (M,12,3)
-        normals = self.node.gradient(self._to_data(points), normalize=True)  # (M,12,3)
+    def find_vertex_locations(
+        self,
+        active_voxels: np.ndarray,
+        edge_coords: np.ndarray,
+        top: "VoxelTopology",
+        grid: "Grid",
+    ) -> np.ndarray:
+        sijk = top.unravel_nd(active_voxels, top.sample_shape)  # (M,3)
+        active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
+        points = edge_coords[active_voxel_edges]  # (M,12,3)
+        normals = self.node.gradient(
+            self._to_data(grid, points), normalize=True
+        )  # (M,12,3)
         if self.bias_mode != "disabled":
-            bias_verts = NaiveSurfaceNetStrategy().find_vertex_locations(ctx)
+            bias_verts = NaiveSurfaceNetStrategy().find_vertex_locations(
+                active_voxels, edge_coords, top, grid
+            )
         else:
             bias_verts = [None] * len(points)
 
@@ -152,5 +170,5 @@ class DualContouringStrategy(DualVertexStrategy):
         x, res, rank, _ = np.linalg.lstsq(A.astype(float), b.astype(float), rcond=None)
         return x.astype(q.dtype)
 
-    def _to_data(self, x: np.ndarray) -> np.ndarray:
-        return (x - (1, 1, 1)) * self.spacing + self.min_corner
+    def _to_data(self, grid: "Grid", x: np.ndarray) -> np.ndarray:
+        return (x - (1, 1, 1)) * grid.spacing + grid.min_corner

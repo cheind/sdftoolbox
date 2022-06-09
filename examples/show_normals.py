@@ -2,15 +2,16 @@
 
 import matplotlib.pyplot as plt
 import surfacenets as sn
+import numpy as np
 
 
 def main():
 
     # Setup the scene
     scene = sn.sdfs.Box((1.1, 1.1, 1.1))
-    scene = sn.sdfs.Transform(scene, sn.maths.rotate([1, 0, 0], 0))
+    scene = sn.sdfs.Transform(scene, sn.maths.rotate([1, 1, 1], np.pi / 4))
     xyz, spacing = sn.sdfs.Discretized.sampling_coords(
-        res=(4, 4, 4), min_corner=(-1, -1, -1), max_corner=(1, 1, 1)
+        res=(33, 33, 33), min_corner=(-1, -1, -1), max_corner=(1, 1, 1)
     )
 
     # Generate mesh
@@ -36,8 +37,8 @@ def main():
     # vert_normals = sn.normals.compute_vertex_normals(verts, faces, face_normals)
 
     # Plot mesh+normals
-    fig, ax = sn.plotting.create_mesh_figure(verts, faces, face_normals, vert_normals)
-    sn.plotting.plot_samples(ax, xyz, sdfv)
+    fig, ax = sn.plotting.create_mesh_figure(verts, faces)
+    # sn.plotting.plot_samples(ax, xyz, sdfv)
     # sn.plotting.generate_rotation_gif("normals.gif", fig, ax)
     plt.show()
 

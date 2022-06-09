@@ -1,20 +1,24 @@
 import logging
 import time
-
+from typing import TYPE_CHECKING
 import numpy as np
 
 from .tesselation import triangulate_quads
 from .topology import VoxelTopology
-from .dual_strategies import DualVertexStrategy, SurfaceContext, NaiveSurfaceNetStrategy
-from .types import float_dtype
+from .dual_strategies import NaiveSurfaceNetStrategy
+
+if TYPE_CHECKING:
+    from .grid import Grid
+    from .dual_strategies import DualVertexStrategy
+
 
 _logger = logging.getLogger("surfacenets")
 
 
 def dual_isosurface(
     sdf_values: np.ndarray,
-    spacing: tuple[float, float, float],
-    strategy: DualVertexStrategy = None,
+    grid: "Grid",
+    strategy: "DualVertexStrategy" = None,
     triangulate: bool = False,
 ):
     """A vectorized dual iso-surface extraction algorithm for signed distance fields.
@@ -27,7 +31,7 @@ def dual_isosurface(
 
     Params:
         sdf_values: (I,J,K) array if SDF values at sample locations
-        spacing: The spatial step size in each dimension
+        grid: spatial sampling locations
         strategy: Defines how vertices are placed inside of voxels. Defaults to naive
             surface nets.
         triangulate: When true, returns triangles instead of quadliterals.
@@ -46,10 +50,10 @@ def dual_isosurface(
     if strategy is None:
         strategy = NaiveSurfaceNetStrategy()
     assert sdf_values.ndim == 3
+    assert sdf_values.shape == grid.shape[:3]
 
     # First, we pad the sample volume on each side with a single (nan) value to
     # avoid having to deal with most out-of-bounds issues.
-    spacing = np.asfarray(spacing, dtype=float_dtype)
     sdf_values = np.pad(
         sdf_values,
         ((1, 1), (1, 1), (1, 1)),
@@ -143,12 +147,11 @@ def dual_isosurface(
     # For each active voxel, we need to find one vertex location. The
     # method todo that depennds on `vertex_placement_mode`. No matter which method
     # is selected, we expect the returned coordinates to be in voxel space.
-    verts = strategy.find_vertex_locations(
-        SurfaceContext(top, active_voxels, edges_isect_coords)
-    )
+    verts = strategy.find_vertex_locations(active_voxels, edges_isect_coords, top, grid)
+
     # Finally, we need to account for the padded voxels and scale them to
     # data dimensions
-    verts = (verts - (1, 1, 1)) * spacing
+    verts = (verts - (1, 1, 1)) * grid.spacing + grid.min_corner
     _logger.debug(
         f"After vertex computation; elapsed {time.perf_counter() - t0:.4f} secs"
     )

@@ -9,6 +9,7 @@ import abc
 
 from . import maths
 from .types import float_dtype
+from .grid import Grid
 
 
 class SDF(abc.ABC):
@@ -226,25 +227,22 @@ class Discretized(SDF):
     uniform scale wrt. the SDF node to be sampled.
 
     Attributes:
-        xyz: (I,J,K,3) array of sampling locations
-        xyz_spacing: (3, ) spacing between two adjacent voxels
-        xyz_sdf: (I,J,K) SDF values at sampling locations
+        grid: Grid (I,J,K) holds grid sampling locations
+        sdf_values: (I,J,K) SDF values at sampling locations
     """
 
     def __init__(
         self,
-        xyz: np.ndarray,
+        grid: Grid,
         sdf_values: np.ndarray,
     ) -> None:
         """
         Params:
-            xyz: (I,J,K,3) local sampling coordinates
+            grid: local sampling coordinates
             sdf_valus: (I,J,K) signed distance values
-            t_world_local: (4,4) optional transform
         """
-        self.xyz = xyz
-        self.xyz_spacing = xyz[1, 1, 1] - xyz[0, 0, 0]
-        self.xyz_sdf = sdf_values
+        self.grid = grid
+        self.sdf_values = sdf_values
 
     def sample(self, x: np.ndarray) -> np.ndarray:
         """Samples the discretized volume using trilinear interpolation.
@@ -256,7 +254,7 @@ class Discretized(SDF):
             sdf: (...) sdf values at given locations.
         """
 
-        c = self._interp(self.xyz_sdf, x)
+        c = self._interp(self.sdf_values, x)
         return c.squeeze(-1)
 
     def _interp(self, vol: np.ndarray, x: np.ndarray) -> np.ndarray:
@@ -266,13 +264,13 @@ class Discretized(SDF):
         if vol.ndim == 3:
             vol = np.expand_dims(vol, -1)
 
-        minc = np.expand_dims(self.xyz[0, 0, 0], 0)
-        maxc = np.expand_dims(self.xyz[-1, -1, -1], 0)
+        minc = np.expand_dims(self.grid.min_corner, 0)
+        maxc = np.expand_dims(self.grid.max_corner, 0)
         x = np.maximum(
             minc, np.minimum(maxc - 1e-8, x)
         )  # 1e-8 to always have sample point > x
 
-        spacing = np.expand_dims(self.xyz_spacing, 0)
+        spacing = np.expand_dims(self.grid.spacing, 0)
         xn = (x - minc) / spacing
         sijk = np.floor(xn).astype(np.int32)
         w = xn - sijk
@@ -299,43 +297,6 @@ class Discretized(SDF):
         # k-direction
         c = c0 * (1 - w[..., 2:3]) + c1 * w[..., 2:3]
         return c.reshape(P + (c.shape[-1],))
-
-    @staticmethod
-    def sampling_coords(
-        res: tuple[int, int, int] = (40, 40, 40),
-        min_corner: tuple[float, float, float] = (-1.5, -1.5, -1.5),
-        max_corner: tuple[float, float, float] = (1.5, 1.5, 1.5),
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Generates volumentric sampling locations.
-
-        Params:
-            res: resolution for each axis
-            min_corner: bounds for the sampling volume
-            max_corner: bounds for the sampling volume
-            dtype: floating point data type of result
-
-        Returns:
-            xyz: (I,J,K,3) array of sampling locations
-            spacing: (3,) the spatial spacing between two voxels
-        """
-
-        ranges = [
-            np.linspace(min_corner[0], max_corner[0], res[0], dtype=float_dtype),
-            np.linspace(min_corner[1], max_corner[1], res[1], dtype=float_dtype),
-            np.linspace(min_corner[2], max_corner[2], res[2], dtype=float_dtype),
-        ]
-
-        X, Y, Z = np.meshgrid(*ranges, indexing="ij")
-        xyz = np.stack((X, Y, Z), -1)
-        spacing = np.array(
-            [
-                ranges[0][1] - ranges[0][0],
-                ranges[1][1] - ranges[1][0],
-                ranges[2][1] - ranges[2][0],
-            ],
-            dtype=float_dtype,
-        )
-        return xyz, spacing
 
 
 class Sphere(SDF):

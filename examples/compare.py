@@ -19,30 +19,39 @@ def main():
     scene = sn.sdfs.Displacement(scene, lambda xyz: 0.15 * np.sin(10 * xyz).prod(-1))
 
     # Define the sampling locations.
-    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(50, 50, 50))
+    grid = sn.Grid(
+        res=(48, 48, 48), min_corner=(-1.5, -1.5, -1.5), max_corner=(1.5, 1.5, 1.5)
+    )
 
     # Evaluate the SDF
     t0 = time.perf_counter()
-    sdfv = scene.sample(xyz)
+    sdfv = scene.sample(grid.xyz)
     print(f"SDF sampling took {time.perf_counter() - t0:.3f} secs")
 
     t0 = time.perf_counter()
     verts_sn, faces_sn = sn.dual_isosurface(
         sdfv,
-        spacing,
+        grid,
         triangulate=False,
     )
-    verts_sn += xyz[0, 0, 0]
-    print(f"SurfaceNets took {time.perf_counter() - t0:.3f} secs")
+    print(
+        f"SurfaceNets took {time.perf_counter() - t0:.3f} secs",
+        "#faces",
+        len(faces_sn),
+    )
 
     t0 = time.perf_counter()
     verts_mc, faces_mc, _, _ = marching_cubes(
         sdfv,
         0.0,
-        spacing=spacing,
+        spacing=grid.spacing,
     )
-    verts_mc += xyz[0, 0, 0]
-    print(f"MarchingCubes took {time.perf_counter() - t0:.3f} secs")
+    verts_mc += grid.min_corner
+    print(
+        f"MarchingCubes took {time.perf_counter() - t0:.3f} secs",
+        "#faces",
+        len(faces_mc),
+    )
 
     # plt.style.use("dark_background")
     minc = verts_mc.min(0)

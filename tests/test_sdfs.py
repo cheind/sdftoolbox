@@ -104,23 +104,21 @@ def test_gradients():
 
 def test_discretized():
     scene = sn.sdfs.Sphere.create(radius=1)
-    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(20, 20, 20))
-    sdf_scene = scene.sample(xyz)
-    disc = sn.sdfs.Discretized(xyz, sdf_scene)
-    sdf_disc = disc.sample(xyz)
+    grid = sn.Grid(res=(20, 20, 20))
+    sdf_scene = scene.sample(grid.xyz)
+    disc = sn.sdfs.Discretized(grid, sdf_scene)
+    sdf_disc = disc.sample(grid.xyz)
     assert np.allclose(sdf_scene, sdf_disc)
 
     # Shift coords test
     scene = sn.sdfs.Plane.create()
-    xyz, spacing = sn.sdfs.Discretized.sampling_coords(
-        res=(3, 3, 3), min_corner=(-1, -1, -1), max_corner=(1, 1, 1)
-    )
-    sdf_scene = scene.sample(xyz)
-    disc = sn.sdfs.Discretized(xyz, sdf_scene)
+    grid = sn.Grid(res=(3, 3, 3), min_corner=(-1, -1, -1), max_corner=(1, 1, 1))
+    sdf_scene = scene.sample(grid.xyz)
+    disc = sn.sdfs.Discretized(grid, sdf_scene)
 
     from surfacenets.utils import reorient_volume
 
-    sdf_disc = reorient_volume(disc.sample(xyz + (0.0, 0.0, 0.5)))
+    sdf_disc = reorient_volume(disc.sample(grid.xyz + (0.0, 0.0, 0.5)))
     assert np.allclose(sdf_disc[0], -0.5)
     assert np.allclose(sdf_disc[1], 0.5)
     assert np.allclose(sdf_disc[2], 1.0, atol=1e-5)  # out of

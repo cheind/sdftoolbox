@@ -32,28 +32,31 @@ def generalized_max(x: np.ndarray, axis: ShapeLike = None, alpha: float = np.inf
         return np.max(x, axis=axis)
 
 
-def hom(v, value=1):
+def hom(v, value=1, dtype: np.dtype = None):
     """Returns v as homogeneous vectors"""
-    v = np.asanyarray(v)
+    v = np.asanyarray(v, dtype=dtype)
     return np.insert(v, v.shape[-1], value, axis=-1)
 
 
-def dehom(a):
+def dehom(a, dtype: np.dtype = None):
     """Makes homogeneous vectors inhomogenious by dividing by the last element of the last axis"""
-    a = np.asarray(a)
+    a = np.asfarray(a, dtype=dtype)
     return a[..., :-1] / a[..., None, -1]
 
 
-def translate(values: np.ndarray) -> np.ndarray:
+def translate(values: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
     """Construct and return a translation matrix"""
-    m = np.eye(4, dtype=np.float32)
+    values = np.asfarray(values, dtype=dtype)
+    dtype = dtype or values.dtype
+    m = np.eye(4, dtype=dtype)
     m[:3, 3] = values
     return m
 
 
-def scale(values: np.ndarray) -> np.ndarray:
+def scale(values: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
     """Construct and return a scaling matrix"""
-    m = np.eye(4, dtype=np.float32)
+    values = np.asfarray(values, dtype=dtype)
+    m = np.eye(4, dtype=dtype)
     m[[0, 1, 2], [0, 1, 2]] = values
     return m
 
@@ -64,21 +67,20 @@ def _skew(a):
     )
 
 
-def rotate(axis: np.ndarray, angle: float) -> np.ndarray:
+def rotate(axis: np.ndarray, angle: float, dtype: np.dtype = None) -> np.ndarray:
     """Construct a rotation matrix given axis/angle pair."""
     # See
     # https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
-    axis = np.asarray(axis, dtype=np.float32)
+    axis = np.asfarray(axis, dtype=dtype)
     sina = np.sin(angle)
     cosa = np.cos(angle)
     d = axis / np.linalg.norm(axis)
-
     R = (
-        cosa * np.eye(3, dtype=np.float32)
+        cosa * np.eye(3, dtype=axis.dtype)
         + sina * _skew(d)
         + (1 - cosa) * np.outer(d, d)
     )
-    m = np.eye(4, dtype=R.dtype)
+    m = np.eye(4, dtype=axis.dtype)
     m[:3, :3] = R
     return m
 

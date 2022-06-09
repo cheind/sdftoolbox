@@ -103,6 +103,7 @@ Here are some additional plots from the library
 
 ## Notes (just for me)
 
--   for a cube, assuming surfae lin when computing ts is not quite right. increase num samples or add a newton root finder
+-   for a cube, assuming surfae lin when computing ts is not quite right. increase num samples or add a newton root finder. Root finder
+    would not work: in case of box you easily have zero grads in the edge direction.
 -   biasing for plane parallel xy is needed, otherwise no location info.
 -   naive method might shrink object (two edge case)

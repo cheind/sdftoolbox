@@ -29,10 +29,9 @@ def main():
 
     for idx in range(1, 6):
         step = 2**idx
-        verts, faces = sn.surface_nets(
+        verts, faces = sn.dual_isosurface(
             sdfv[::step, ::step, ::step],
             spacing=spacing * step,
-            vertex_placement_mode="naive",
             triangulate=False,
         )
         verts += xyz[0, 0, 0] + (idx * 3, 0, 0)

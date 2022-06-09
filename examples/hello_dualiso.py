@@ -1,5 +1,4 @@
 """Introductory example to surfacenet usage"""
-import numpy as np
 
 
 def main():
@@ -8,9 +7,16 @@ def main():
     import surfacenets as sn
 
     # Setup the scene
-    scene = sn.sdfs.Box.create((0.6, 0.6, 0.6))  #
+    scene = sn.sdfs.Union(
+        [
+            sn.sdfs.Sphere.create(center=(0, 0, 0), radius=0.4),
+            sn.sdfs.Sphere.create(center=(0, 0, 0.45), radius=0.3),
+            sn.sdfs.Sphere.create(center=(0, 0, 0.8), radius=0.2),
+        ],
+        alpha=8,
+    )
     # Generate the sampling locations. Here we use the default params
-    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(40, 40, 40))
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords()
 
     # Evaluate the SDF
     sdfv = scene.sample(xyz)
@@ -19,22 +25,19 @@ def main():
     verts, faces = sn.dual_isosurface(
         sdfv,
         spacing=spacing,
-        strategy=sn.DualContouringStrategy(
-            scene, spacing=spacing, min_corner=xyz[0, 0, 0], bias_strength=1e-3
-        ),
-        # strategy=sn.NaiveSurfaceNetStrategy(),
+        strategy=sn.NaiveSurfaceNetStrategy(),
         triangulate=False,
     )
-    print("#faces", len(faces))
     verts += xyz[0, 0, 0]
+
+    # Export
+    sn.io.export_stl("surfacenets.stl", verts, faces)
 
     # Visualize
     import matplotlib.pyplot as plt
 
-    fig, ax = sn.plotting.create_mesh_figure(
-        verts, faces, fig_kwargs={"proj_type": "persp"}
-    )
-    # sn.plotting.plot_samples(ax, xyz)
+    # plt.style.use("dark_background")
+    fig, ax = sn.plotting.create_mesh_figure(verts, faces)
     plt.show()
 
 

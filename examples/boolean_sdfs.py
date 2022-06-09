@@ -6,13 +6,13 @@ import numpy as np
 
 
 def extract(scene: sn.sdfs.SDF):
-    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(60, 60, 60))
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(40, 40, 40))
     sdfv = scene.sample(xyz)
 
-    verts, faces = sn.surface_nets(
+    verts, faces = sn.dual_isosurface(
         sdfv,
         spacing=spacing,
-        vertex_placement_mode="naive",
+        strategy=sn.NaiveSurfaceNetStrategy(),
         triangulate=False,
     )
     verts += xyz[0, 0, 0]

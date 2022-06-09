@@ -8,16 +8,24 @@ import numpy as np
 def main():
 
     # Setup the scene
-    scene = sn.sdfs.Box.create()
-    # scene.t_world_local = sn.maths.rotate([1, 1, 1], 0.78)
-    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(10, 10, 10))
+    scene = sn.sdfs.Box((1.1, 1.1, 1.1))
+    scene = sn.sdfs.Transform(scene, sn.maths.rotate([1, 0, 0], 0))
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords(
+        res=(4, 4, 4), min_corner=(-1, -1, -1), max_corner=(1, 1, 1)
+    )
 
     # Generate mesh
     sdfv = scene.sample(xyz)
     verts, faces = sn.dual_isosurface(
         sdfv,
         spacing=spacing,
-        strategy=sn.NaiveSurfaceNetStrategy(),
+        strategy=sn.DualContouringStrategy(
+            scene,
+            spacing=spacing,
+            min_corner=xyz[0, 0, 0],
+            bias_strength=1e-5,
+        ),
+        # strategy=sn.NaiveSurfaceNetStrategy(),
         triangulate=False,
     )
     verts += xyz[0, 0, 0]
@@ -30,6 +38,7 @@ def main():
 
     # Plot mesh+normals
     fig, ax = sn.plotting.create_mesh_figure(verts, faces, face_normals, vert_normals)
+    sn.plotting.plot_samples(ax, xyz, sdfv)
     plt.show()
 
 

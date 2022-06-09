@@ -19,7 +19,7 @@ def main():
     scene = sn.sdfs.Displacement(scene, lambda xyz: 0.15 * np.sin(10 * xyz).prod(-1))
 
     # Define the sampling locations.
-    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(60, 60, 60))
+    xyz, spacing = sn.sdfs.Discretized.sampling_coords(res=(50, 50, 50))
 
     # Evaluate the SDF
     t0 = time.perf_counter()
@@ -27,10 +27,9 @@ def main():
     print(f"SDF sampling took {time.perf_counter() - t0:.3f} secs")
 
     t0 = time.perf_counter()
-    verts_sn, faces_sn = sn.surface_nets(
+    verts_sn, faces_sn = sn.dual_isosurface(
         sdfv,
         spacing,
-        vertex_placement_mode="naive",
         triangulate=False,
     )
     verts_sn += xyz[0, 0, 0]

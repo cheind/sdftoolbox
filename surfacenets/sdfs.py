@@ -5,9 +5,11 @@ Tools to create, manipulate and sample continuous signed distance functions in 3
 from argparse import ArgumentError
 from typing import Callable, Literal
 import numpy as np
+import numpy.typing as npt
 import abc
 
 from . import maths
+from .types import float_dtype
 
 
 class SDF(abc.ABC):
@@ -87,12 +89,13 @@ class Transform(SDF):
     When inheriting from Transform, you need to implement `sample_local` instead of `sample`.
     """
 
-    def __init__(self, t_world_local: np.ndarray = None) -> None:
+    def __init__(self, node: SDF, t_world_local: np.ndarray = None) -> None:
         if t_world_local is None:
-            t_world_local = np.eye(4, dtype=np.float32)
+            t_world_local = np.eye(4, dtype=float_dtype)
 
         self._t_dirty = False
         self._t_scale: float = 1.0
+        self.node = node
         self.t_world_local = t_world_local
 
     @property
@@ -101,7 +104,7 @@ class Transform(SDF):
 
     @t_world_local.setter
     def t_world_local(self, m: np.ndarray):
-        self._t_world_local = np.asarray(m).astype(np.float32)
+        self._t_world_local = np.asfarray(m, dtype=float_dtype)
         self._update_scale()
         self._t_dirty = True
 
@@ -113,7 +116,7 @@ class Transform(SDF):
         return self._t_local_world
 
     def sample(self, x: np.ndarray) -> np.ndarray:
-        return self.sample_local(self._to_local(x)) * self._t_scale
+        return self.node.sample(self._to_local(x)) * self._t_scale
 
     def _update_scale(self):
         scales = np.linalg.norm(self._t_world_local[:3, :3], axis=0)
@@ -123,18 +126,6 @@ class Transform(SDF):
                 " destroys distance fields."
             )
         self._t_scale = scales[0]
-
-    @abc.abstractmethod
-    def sample_local(self, x: np.ndarray) -> np.ndarray:
-        """Samples the SDF at locations `x` in local space.
-
-        Params
-            x: (...,3) array of sampling locations
-
-        Returns
-            v: (...) array of SDF values.
-        """
-        ...
 
     def _to_local(self, x: np.ndarray) -> np.ndarray:
         return maths.dehom(maths.hom(x) @ self.t_local_world.T)
@@ -188,7 +179,7 @@ class Difference(SDF):
 class Displacement(SDF):
     """Displaces a SDF node by function modifier."""
 
-    def __init__(self, node: SDF, dispfn: Callable[[np.ndarray], float]) -> None:
+    def __init__(self, node: SDF, dispfn: Callable[[np.ndarray], np.ndarray]) -> None:
         self.dispfn = dispfn
         self.node = node
 
@@ -207,7 +198,7 @@ class Repetition(SDF):
         periods: tuple[float, float, float] = (1, 1, 1),
         reps: tuple[int, int, int] = None,
     ) -> None:
-        self.periods = np.array(periods).reshape(1, 1, 1, 3)
+        self.periods = np.asfarray(periods, dtype=float_dtype).reshape(1, 1, 1, 3)
         self.node = node
         if reps is not None:
             self.reps = np.array(reps).reshape(1, 1, 1, 3)
@@ -227,57 +218,36 @@ class Repetition(SDF):
         return self.node.sample(x)
 
 
-class Discretized(Transform):
+class Discretized(SDF):
     """Stores a discretized SDF.
 
-    This node is useful when you wish to sample a continuous SDF for performance
-    reasons.Internally, a anisotropic voxel grid is used to sample the SDF values
-    and optionally gradients. For any query location, the SDF is then reconstructed
-    by trilinear interpolation over the voxel grid.
-
-    This class inherits from Transform, so you can adjust the position, orientation
-    and uniform scale wrt. the SDF node to be sampled.
+    For any query location, the SDF is then reconstructed
+    by trilinear interpolation over the voxel grid. This class inherits
+    from Transform, so you can adjust the position, orientation and
+    uniform scale wrt. the SDF node to be sampled.
 
     Attributes:
         xyz: (I,J,K,3) array of sampling locations
         xyz_spacing: (3, ) spacing between two adjacent voxels
         xyz_sdf: (I,J,K) SDF values at sampling locations
-        xyz_gradients: (I,J,K,3) optional gradients at sampling locations
     """
 
     def __init__(
         self,
-        node: SDF,
-        res: tuple[int, int, int] = (60, 60, 60),
-        min_corner: tuple[float, float, float] = (-2, -2, -2),
-        max_corner: tuple[float, float, float] = (2, 2, 2),
-        t_world_local: np.ndarray = None,
-        with_gradients: bool = False,
+        xyz: np.ndarray,
+        sdf_values: np.ndarray,
     ) -> None:
         """
         Params:
-            node: the node representing the SDF to be discretized
-            res: (3,) resolution of the voxel grid
-            min_corner: (3,) minimum spatial sampling location
-            max_corner: (3,) maximum spatial sampling location
+            xyz: (I,J,K,3) local sampling coordinates
+            sdf_valus: (I,J,K) signed distance values
             t_world_local: (4,4) optional transform
-            with_gradients: Whether this class captures gradient or
-                they are computed on the fly from voxel SDF values
-
         """
-        super().__init__(t_world_local)
-        self.res = np.array(res, dtype=np.int32)
-        self.xyz, self.xyz_spacing = Discretized.sampling_coords(
-            res, min_corner, max_corner
-        )
-        world_xyz = maths.dehom(maths.hom(self.xyz) @ self.t_world_local.T)
-        self.xyz_sdf = node.sample(world_xyz)
-        if with_gradients:
-            self.xyz_gradients = node.gradient(world_xyz)
-        else:
-            self.xyz_gradients = None
+        self.xyz = xyz
+        self.xyz_spacing = xyz[1, 1, 1] - xyz[0, 0, 0]
+        self.xyz_sdf = sdf_values
 
-    def sample_local(self, x: np.ndarray) -> np.ndarray:
+    def sample(self, x: np.ndarray) -> np.ndarray:
         """Samples the discretized volume using trilinear interpolation.
 
         Params:
@@ -289,18 +259,6 @@ class Discretized(Transform):
 
         c = self._interp(self.xyz_sdf, x)
         return c.squeeze(-1)
-
-    def gradient(
-        self,
-        x: np.ndarray,
-        h: float = 0.00001,
-        normalize: bool = False,
-        mode: Literal["central"] = "central",
-    ) -> np.ndarray:
-        if self.xyz_gradients is not None:
-            return self._interp(self.xyz_gradients, x)
-        else:
-            return super().gradient(x, h, normalize, mode)
 
     def _interp(self, vol: np.ndarray, x: np.ndarray) -> np.ndarray:
         P = x.shape[:-1]
@@ -319,13 +277,11 @@ class Discretized(Transform):
         xn = (x - minc) / spacing
         sijk = np.floor(xn).astype(np.int32)
         w = xn - sijk
-        print(w.shape, vol.shape, sijk.shape)
 
         # See https://en.wikipedia.org/wiki/Trilinear_interpolation
         # i-diretion
         si, sj, sk = sijk.T
         c00 = vol[si, sj, sk] * (1 - w[..., 0:1]) + vol[si + 1, sj, sk] * w[..., 0:1]
-        print((vol[si, sj, sk] * (1 - w[..., 0:1])).shape)
         c01 = (
             vol[si, sj, sk + 1] * (1 - w[..., 0:1])
             + vol[si + 1, sj, sk + 1] * w[..., 0:1]
@@ -350,7 +306,6 @@ class Discretized(Transform):
         res: tuple[int, int, int] = (60, 60, 60),
         min_corner: tuple[float, float, float] = (-1, -1, -1),
         max_corner: tuple[float, float, float] = (1, 1, 1),
-        dtype=np.float32,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Generates volumentric sampling locations.
 
@@ -358,6 +313,7 @@ class Discretized(Transform):
             res: resolution for each axis
             min_corner: bounds for the sampling volume
             max_corner: bounds for the sampling volume
+            dtype: floating point data type of result
 
         Returns:
             xyz: (I,J,K,3) array of sampling locations
@@ -365,9 +321,9 @@ class Discretized(Transform):
         """
 
         ranges = [
-            np.linspace(min_corner[0], max_corner[0], res[0], dtype=dtype),
-            np.linspace(min_corner[1], max_corner[1], res[1], dtype=dtype),
-            np.linspace(min_corner[2], max_corner[2], res[2], dtype=dtype),
+            np.linspace(min_corner[0], max_corner[0], res[0], dtype=float_dtype),
+            np.linspace(min_corner[1], max_corner[1], res[1], dtype=float_dtype),
+            np.linspace(min_corner[2], max_corner[2], res[2], dtype=float_dtype),
         ]
 
         X, Y, Z = np.meshgrid(*ranges, indexing="ij")
@@ -378,18 +334,15 @@ class Discretized(Transform):
                 ranges[1][1] - ranges[1][0],
                 ranges[2][1] - ranges[2][0],
             ],
-            dtype=dtype,
+            dtype=float_dtype,
         )
         return xyz, spacing
 
 
-class Sphere(Transform):
-    """The SDF of a unit sphere
+class Sphere(SDF):
+    """The SDF of a unit sphere."""
 
-    Use the transform properties to adjust the shape and position.
-    """
-
-    def sample_local(self, x: np.ndarray) -> np.ndarray:
+    def sample(self, x: np.ndarray) -> np.ndarray:
         d = np.linalg.norm(x, axis=-1)
         return d - 1.0
 
@@ -397,35 +350,33 @@ class Sphere(Transform):
     def create(
         center: np.ndarray = (0.0, 0.0, 0.0),
         radius: float = 1.0,
-    ) -> "Sphere":
+    ) -> Transform:
         """Creates a sphere from center and radius."""
         t = maths.translate(center) @ maths.scale(radius)
-        return Sphere(t)
+        return Transform(Sphere(), t_world_local=t)
 
 
-class Plane(Transform):
-    """A plane parallel to xy-plane through origin.
+class Plane(SDF):
+    """A plane parallel to xy-plane through origin."""
 
-    Use the transform properties to adjust the shape and position.
-    """
-
-    def sample_local(self, x: np.ndarray) -> np.ndarray:
+    def sample(self, x: np.ndarray) -> np.ndarray:
         return x[..., -1]
 
     @staticmethod
     def create(
-        origin: np.ndarray = (0, 0, 0), normal: np.ndarray = (0, 0, 1)
-    ) -> "Plane":
+        origin: tuple[float, float, float] = (0, 0, 0),
+        normal: tuple[float, float, float] = (0, 0, 1),
+    ) -> Transform:
         """Creates a plane from a point and normal direction."""
-        normal = np.asarray(normal, dtype=np.float32)
-        origin = np.asarray(origin, dtype=np.float32)
+        normal = np.asfarray(normal, dtype=float_dtype)
+        origin = np.asfarray(origin, dtype=float_dtype)
         normal /= np.linalg.norm(normal)
         # Need to find a rotation that alignes canonical frame's z-axis
         # with normal.
-        z = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        z = np.array([0.0, 0.0, 1.0], dtype=normal.dtype)
         d = np.dot(z, normal)
         if d == 1.0:
-            t = np.eye(4)
+            t = np.eye(4, dtype=normal.dtype)
         elif d == -1.0:
             t = maths.rotate([1.0, 0.0, 0.0], np.pi)
         else:
@@ -433,38 +384,20 @@ class Plane(Transform):
             a = np.arccos(normal[-1])
             t = maths.rotate(p, -a)
         t[:3, 3] = origin
-        return Plane(t)
+        return Transform(Plane(), t_world_local=t)
 
 
-class Box(Transform):
-    """A three-dimensional box centered at origin with side-length two.
-
-    Use the transform properties to adjust the shape and position.
-    """
+class Box(SDF):
+    """An axis aligned bounding box centered at origin."""
 
     def __init__(
         self,
         lengths: tuple[float, float, float] = (1.0, 1.0, 1.0),
-        t_world_local: np.ndarray = None,
     ) -> None:
-        super().__init__(t_world_local)
-        self.half_lengths = np.asarray(lengths, dtype=np.float32) * 0.5
+        self.half_lengths = np.asfarray(lengths, dtype=float_dtype) * 0.5
 
-    def sample_local(self, x: np.ndarray) -> np.ndarray:
+    def sample(self, x: np.ndarray) -> np.ndarray:
         a = np.abs(x) - self.half_lengths
         return np.linalg.norm(np.maximum(a, 0), axis=-1) + np.minimum(
             np.max(a, axis=-1), 0
         )
-
-    @staticmethod
-    def create(lengths: tuple[float, float, float] = (1.0, 1.0, 1.0)) -> "Box":
-        return Box(lengths)
-
-
-if __name__ == "__main__":
-    scene = Sphere.create()
-    vol = Discretized(
-        scene, res=(64, 64, 64), min_corner=(-1, -1, -1), max_corner=(1, 1, 1)
-    )
-
-    print(vol.sample(np.array([[[0.0, 0.0, 0.0]]])))

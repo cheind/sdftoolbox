@@ -128,5 +128,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-surfacenets.stl
-./normals.gif
+/surfacenets.stl
+/normals.gif

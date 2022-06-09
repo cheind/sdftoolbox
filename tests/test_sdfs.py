@@ -67,7 +67,9 @@ def test_box():
 
 def test_gradients():
     scene = sn.sdfs.Sphere.create(radius=1)
-    analytic = lambda x: x / np.linalg.norm(x, axis=-1, keepdims=True)
+
+    def analytic(x):
+        return x / np.linalg.norm(x, axis=-1, keepdims=True)
 
     xyz = np.array(
         [

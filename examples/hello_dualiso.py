@@ -6,7 +6,7 @@ def main():
     # Main import
     import surfacenets as sn
 
-    # Setup the scene
+    # Setup a snowman-scene
     scene = sn.sdfs.Union(
         [
             sn.sdfs.Sphere.create(center=(0, 0, 0), radius=0.4),

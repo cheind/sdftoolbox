@@ -85,10 +85,10 @@ python -m examples.<name>
 Here are some additional plots from the library
 
 <div align="center">
-<img src="doc/lods.svg" width="50%">
+<img src="doc/normals.gif" width="50%">
 </div>
 <div align="center">
-<img src="doc/normals.svg" width="50%">
+<img src="doc/lods.svg" width="50%">
 </div>
 <div align="center">
 <img src="doc/bool.svg" width="50%">

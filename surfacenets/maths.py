@@ -1,5 +1,8 @@
 import numpy as np
+import numpy.typing as npt
 from typing import TypeVar, Any
+
+from .types import float_dtype
 
 ShapeLike = TypeVar("ShapeLike", bound=Any)
 
@@ -32,31 +35,30 @@ def generalized_max(x: np.ndarray, axis: ShapeLike = None, alpha: float = np.inf
         return np.max(x, axis=axis)
 
 
-def hom(v, value=1, dtype: np.dtype = None):
+def hom(v, value=1):
     """Returns v as homogeneous vectors"""
-    v = np.asanyarray(v, dtype=dtype)
+    v = np.asanyarray(v, dtype=float_dtype)
     return np.insert(v, v.shape[-1], value, axis=-1)
 
 
-def dehom(a, dtype: np.dtype = None):
+def dehom(a):
     """Makes homogeneous vectors inhomogenious by dividing by the last element of the last axis"""
-    a = np.asfarray(a, dtype=dtype)
+    a = np.asfarray(a, dtype=float_dtype)
     return a[..., :-1] / a[..., None, -1]
 
 
-def translate(values: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+def translate(values: np.ndarray) -> np.ndarray:
     """Construct and return a translation matrix"""
-    values = np.asfarray(values, dtype=dtype)
-    dtype = dtype or values.dtype
-    m = np.eye(4, dtype=dtype)
+    values = np.asfarray(values, dtype=float_dtype)
+    m = np.eye(4, dtype=values.dtype)
     m[:3, 3] = values
     return m
 
 
-def scale(values: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+def scale(values: np.ndarray) -> np.ndarray:
     """Construct and return a scaling matrix"""
-    values = np.asfarray(values, dtype=dtype)
-    m = np.eye(4, dtype=dtype)
+    values = np.asfarray(values, dtype=float_dtype)
+    m = np.eye(4, dtype=values.dtype)
     m[[0, 1, 2], [0, 1, 2]] = values
     return m
 
@@ -67,11 +69,11 @@ def _skew(a):
     )
 
 
-def rotate(axis: np.ndarray, angle: float, dtype: np.dtype = None) -> np.ndarray:
+def rotate(axis: np.ndarray, angle: float) -> np.ndarray:
     """Construct a rotation matrix given axis/angle pair."""
     # See
     # https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
-    axis = np.asfarray(axis, dtype=dtype)
+    axis = np.asfarray(axis, dtype=float_dtype)
     sina = np.sin(angle)
     cosa = np.cos(angle)
     d = axis / np.linalg.norm(axis)

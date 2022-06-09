@@ -396,6 +396,11 @@ class Box(SDF):
     ) -> None:
         self.half_lengths = np.asfarray(lengths, dtype=float_dtype) * 0.5
 
+    @staticmethod
+    def create(lengths: tuple[float, float, float] = (1.0, 1.0, 1.0)) -> "Box":
+        """Creates a box from given lengths."""
+        return Box(lengths)
+
     def sample(self, x: np.ndarray) -> np.ndarray:
         a = np.abs(x) - self.half_lengths
         return np.linalg.norm(np.maximum(a, 0), axis=-1) + np.minimum(

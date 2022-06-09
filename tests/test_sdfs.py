@@ -65,6 +65,23 @@ def test_box():
     assert np.allclose(sdfv, [0.45, -0.216666667], atol=1e-3)
 
 
+def test_root():
+    scene = sn.sdfs.Box((1.1, 1.1, 1.1))
+    scene = sn.sdfs.Transform(scene, sn.maths.rotate([1, 0, 0], np.pi / 4))
+    xyz = np.array(
+        [
+            [-1.0, -0.333333333333, -0.333333333333],
+            [-0.333333333333, -0.333333333333, -0.333333333333],
+        ]
+    )
+    sdfv = scene.sample(xyz)
+    assert np.allclose(sdfv, [0.45, -0.07859548], atol=1e-3)
+
+    x0 = xyz[1] + (-0.07859548, 0.0, 0.0)
+    print(scene.sample([x0]))
+    print(scene.gradient(x0.reshape(1, 3)))
+
+
 def test_gradients():
     scene = sn.sdfs.Sphere.create(radius=1)
 

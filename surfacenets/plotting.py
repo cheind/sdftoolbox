@@ -223,6 +223,17 @@ def generate_rotation_gif(
     num_images: int = 64,
     total_time: float = 5.0,
 ):
+    """Generates a rotating figure and stores it as animated GIF.
+
+    Params:
+        filename: path to resulting file
+        fig: matplotlib figure
+        ax: matplotlib 3d axis
+        azimuth_range: the incremental range of the rotation. Animation
+            starts at ax.azimuth + azimut_range[0]
+        num_images: total number of frames
+        total_time: total animation time in seconds
+    """
     import imageio
 
     azimuth_incs = np.degrees(

@@ -6,6 +6,7 @@ import numpy as np
 from .tesselation import triangulate_quads
 from .topology import VoxelTopology
 from .dual_strategies import DualVertexStrategy, SurfaceContext
+from .types import float_dtype
 
 _logger = logging.getLogger("surfacenets")
 
@@ -51,7 +52,7 @@ def dual_isosurface(
 
     # First, we pad the sample volume on each side with a single (nan) value to
     # avoid having to deal with most out-of-bounds issues.
-    spacing = np.asarray(spacing, dtype=np.float32)
+    spacing = np.asfarray(spacing, dtype=float_dtype)
     sdf_values = np.pad(
         sdf_values,
         ((1, 1), (1, 1), (1, 1)),

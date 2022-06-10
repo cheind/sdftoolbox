@@ -144,11 +144,11 @@ def dual_isosurface(
     # For each active voxel, we need to find one vertex location. The
     # method todo that depennds on `vertex_placement_mode`. No matter which method
     # is selected, we expect the returned coordinates to be in voxel space.
-    verts = strategy.find_vertex_locations(active_voxels, edges_isect_coords, grid)
+    grid_verts = strategy.find_vertex_locations(active_voxels, edges_isect_coords, grid)
 
     # Finally, we need to account for the padded voxels and scale them to
     # data dimensions
-    verts = verts * grid.spacing + grid.min_corner
+    verts = grid.grid_to_data(grid_verts)
     _logger.debug(
         f"After vertex computation; elapsed {time.perf_counter() - t0:.4f} secs"
     )

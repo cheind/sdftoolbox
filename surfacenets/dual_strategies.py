@@ -123,9 +123,7 @@ class DualContouringStrategy(DualVertexStrategy):
         sijk = grid.unravel_nd(active_voxels, grid.padded_shape)  # (M,3)
         active_voxel_edges = grid.find_voxel_edges(active_voxels)  # (M,12)
         points = edge_coords[active_voxel_edges]  # (M,12,3)
-        normals = self.node.gradient(
-            self._to_data(grid, points), normalize=True
-        )  # (M,12,3)
+        normals = self.node.gradient(grid.grid_to_data(points))  # (M,12,3)
         if self.bias_mode != "disabled":
             bias_verts = NaiveSurfaceNetStrategy().find_vertex_locations(
                 active_voxels, edge_coords, grid
@@ -164,6 +162,3 @@ class DualContouringStrategy(DualVertexStrategy):
             b = np.concatenate((b, d), 0)
         x, res, rank, _ = np.linalg.lstsq(A.astype(float), b.astype(float), rcond=None)
         return x.astype(q.dtype)
-
-    def _to_data(self, grid: "Grid", x: np.ndarray) -> np.ndarray:
-        return x * grid.spacing + grid.min_corner

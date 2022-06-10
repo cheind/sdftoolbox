@@ -274,3 +274,7 @@ class Grid:
         if ravel:
             edges = self.ravel_nd(edges.reshape(-1, 4), self.edge_shape).reshape(-1, 12)
         return edges
+
+    def grid_to_data(self, x: np.ndarray) -> np.ndarray:
+        """Convert coordinates in grid space to data space."""
+        return x * self.spacing + self.min_corner

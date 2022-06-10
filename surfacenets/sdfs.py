@@ -80,6 +80,16 @@ class SDF(abc.ABC):
     def subtract(self, *others: list["SDF"], alpha: float = np.inf) -> "Difference":
         return Difference([self] + list(others), alpha=alpha)
 
+    def transform(
+        self, trans=(0.0, 0.0, 0.0), rot=(1.0, 0.0, 0.0, 0.0), scale: float = 1.0
+    ) -> "Transform":
+        t = (
+            maths.translate(trans)
+            @ maths.rotate(rot[:3], rot[-1])
+            @ maths.scale((scale, scale, scale))
+        )
+        return Transform(self, t)
+
 
 class Transform(SDF):
     """Base for nodes with transforms.

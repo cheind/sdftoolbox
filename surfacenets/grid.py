@@ -4,6 +4,12 @@ from .types import float_dtype
 
 
 class Grid:
+    """A 3D sampling grid
+
+    This class provides helper methods to determine sampling locations
+    and methods to traverse the topology of grids in vectorized fashion.
+    """
+
     """Offsets used to compute the edge indices for a single voxel."""
 
     VOXEL_EDGE_OFFSETS = np.array(

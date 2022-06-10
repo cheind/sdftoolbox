@@ -57,7 +57,6 @@ def test_bisect_root_finding():
     # Standard bisect converges faster as linear interp. is not misleading
     x = bisect_roots(s, a, b, max_steps=12)
     assert np.allclose(x, [[0.48, 0.5, 0.0]], 1e-3)
-    print(s.sample(x), x)
 
     # Linear interp. converges slower
     x = bisect_roots(s, a, b, linear_interp=True, max_steps=12)

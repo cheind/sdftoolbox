@@ -26,7 +26,9 @@ def main():
 
     box = sn.sdfs.Box.create((1, 2, 0.5))
     sphere = sn.sdfs.Sphere.create(radius=0.4)
-    grid = sn.Grid(res=(40, 40, 40))
+    grid = sn.Grid(
+        res=(40, 40, 40), min_corner=(-1.2, -1.2, -1.2), max_corner=(1.2, 1.2, 1.2)
+    )
 
     # Union
     scene = box.merge(sphere, alpha=np.inf)

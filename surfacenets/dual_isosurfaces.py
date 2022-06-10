@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from .dual_strategies import NaiveSurfaceNetStrategy
-from .tesselation import triangulate_quads
+from .mesh import triangulate_quads
 
 if TYPE_CHECKING:
     from .dual_strategies import DualVertexStrategy

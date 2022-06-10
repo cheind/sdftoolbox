@@ -2,8 +2,7 @@ import numpy as np
 import os
 from pathlib import Path
 
-from .normals import compute_face_normals
-from .tesselation import triangulate_quads
+from .mesh import compute_face_normals, triangulate_quads
 
 
 def export_stl(

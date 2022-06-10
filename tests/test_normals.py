@@ -14,8 +14,8 @@ def test_plane_normals():
             strategy=sn.NaiveSurfaceNetStrategy(),
             triangulate=False,
         )
-        face_normals = sn.normals.compute_face_normals(verts, faces)
-        vert_normals = sn.normals.compute_vertex_normals(verts, faces, face_normals)
+        face_normals = sn.mesh.compute_face_normals(verts, faces)
+        vert_normals = sn.mesh.compute_vertex_normals(verts, faces, face_normals)
         return face_normals, vert_normals
 
     for n in np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]):

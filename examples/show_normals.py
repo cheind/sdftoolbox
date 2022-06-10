@@ -20,10 +20,10 @@ def main():
     )
 
     # Compute normals
-    face_normals = sn.normals.compute_face_normals(verts, faces)
+    face_normals = sn.mesh.compute_face_normals(verts, faces)
     vert_normals = scene.gradient(verts, normalize=True)
     # Alternatively via averaging face normals
-    # vert_normals = sn.normals.compute_vertex_normals(verts, faces, face_normals)
+    # vert_normals = sn.mesh.compute_vertex_normals(verts, faces, face_normals)
 
     # Plot mesh+normals
     fig, ax = sn.plotting.create_mesh_figure(verts, faces, face_normals, vert_normals)

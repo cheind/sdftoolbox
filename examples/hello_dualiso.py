@@ -43,6 +43,13 @@ def main():
         triangulate=False,
     )
 
+    sdfs_after = scene.sample(verts)
+    import matplotlib.pyplot as plt
+
+    plt.hist(sdfs_after, bins=50)
+    plt.show()
+    print(sdfs_after.min(), sdfs_after.max())
+
     # Export
     sn.io.export_stl("surfacenets.stl", verts, faces)
 

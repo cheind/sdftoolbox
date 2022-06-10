@@ -8,7 +8,6 @@ from .dual_strategies import (
 from .grid import Grid
 from . import sdfs
 from . import plotting
-from . import normals
+from . import mesh
 from . import io
-from . import tesselation
 from . import maths

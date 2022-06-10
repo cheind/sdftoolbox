@@ -171,4 +171,4 @@ class DualContouringStrategy(DualVertexStrategy):
         return x.astype(q.dtype)
 
     def _to_data(self, grid: "Grid", x: np.ndarray) -> np.ndarray:
-        return (x - (1, 1, 1)) * grid.spacing + grid.min_corner
+        return x * grid.spacing + grid.min_corner

@@ -181,10 +181,11 @@ class VoxelTopology:
             np.expand_dims(voxels, -2) + VoxelTopology.EDGE_VOXEL_OFFSETS[elabels]
         )  # (N,4,3)
 
-        edge_mask = (neighbors >= self.padding) & (
+        edge_mask = (neighbors >= 0) & (
             neighbors < np.array(self.sample_shape) - 2 * self.padding
         )
         edge_mask = edge_mask.all(-1).all(-1)  # All edges that have 4 valid neighbors
+        neighbors[~edge_mask] = 0
 
         if ravel:
             neighbors = self.ravel_nd(

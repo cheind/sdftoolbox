@@ -56,7 +56,7 @@ def dual_isosurface(
     # avoid having to deal with most out-of-bounds issues.
     sdf_values = np.pad(
         sdf_values,
-        ((1, 1), (1, 1), (1, 1)),
+        ((0, 1), (0, 1), (0, 1)),
         mode="constant",
         constant_values=np.nan,
     )
@@ -151,7 +151,7 @@ def dual_isosurface(
 
     # Finally, we need to account for the padded voxels and scale them to
     # data dimensions
-    verts = (verts - (1, 1, 1)) * grid.spacing + grid.min_corner
+    verts = verts * grid.spacing + grid.min_corner
     _logger.debug(
         f"After vertex computation; elapsed {time.perf_counter() - t0:.4f} secs"
     )

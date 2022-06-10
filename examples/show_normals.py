@@ -28,6 +28,7 @@ def main():
     # Plot mesh+normals
     fig, ax = sn.plotting.create_mesh_figure(verts, faces, face_normals, vert_normals)
     sn.plotting.plot_samples(ax, grid.xyz, scene.sample(grid.xyz))
+    sn.plotting.setup_axes(ax, grid.min_corner, grid.max_corner)
     # sn.plotting.generate_rotation_gif("normals.gif", fig, ax)
     plt.show()
 

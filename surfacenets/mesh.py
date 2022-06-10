@@ -1,4 +1,11 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
+
+from .roots import directional_newton_roots
+
+if TYPE_CHECKING:
+    from .sdfs import SDF
 
 
 def compute_face_normals(verts: np.ndarray, faces: np.ndarray) -> np.ndarray:
@@ -64,3 +71,8 @@ def triangulate_quads(quads: np.ndarray) -> np.ndarray:
     tris[:, 0, :] = quads[:, [0, 1, 2]]
     tris[:, 1, :] = quads[:, [0, 2, 3]]
     return tris.reshape(-1, 3)
+
+
+def project_vertices(node: "SDF", verts: np.ndarray, **newton_kwargs):
+    """Projects vertices onto the surface."""
+    return directional_newton_roots(node, verts, **newton_kwargs)

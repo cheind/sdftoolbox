@@ -23,7 +23,8 @@ def directional_newton_roots(
         dirs: (N,3) fixed directions (optional). When not given, the directions are
             chosen to be the directions of gradient estimates.
         max_steps: max number of iterations
-        eps:
+        eps: SDF value tolerance. locations within tolerance are excluded from
+            further optimization.
 
     See:
     Levin, Yuri, and Adi Ben-Israel.
@@ -42,6 +43,7 @@ def directional_newton_roots(
             d = g / np.linalg.norm(g, axis=-1, keepdims=True)
         else:
             d = dirs[mask]
-        scaled_dir = (1 / (g[:, None, :] @ d[..., None]).squeeze(-1)) * d
-        x[mask] = x[mask] - y[mask, None] * scaled_dir
+        dot = (g[:, None, :] @ d[..., None]).squeeze(-1)
+        scaled_dir = (y[mask, None] / dot) * d
+        x[mask] = x[mask] - scaled_dir
     return x

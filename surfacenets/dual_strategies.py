@@ -6,7 +6,6 @@ from .types import float_dtype
 
 if TYPE_CHECKING:
     from .grid import Grid
-    from .topology import VoxelTopology
     from .sdfs import SDF
 
 
@@ -16,7 +15,6 @@ class DualVertexStrategy(abc.ABC):
         self,
         active_voxels: np.ndarray,
         edge_coords: np.ndarray,
-        top: "VoxelTopology",
         grid: "Grid",
     ) -> np.ndarray:
         pass
@@ -30,11 +28,10 @@ class MidpointStrategy(DualVertexStrategy):
     def find_vertex_locations(
         self,
         active_voxels: np.ndarray,
-        top: "VoxelTopology",
         grid: "Grid",
         edge_coords: np.ndarray,
     ) -> np.ndarray:
-        sijk = top.unravel_nd(active_voxels, top.sample_shape)
+        sijk = grid.unravel_nd(active_voxels, grid.padded_shape)
         return sijk + np.array([[0.5, 0.5, 0.5]], dtype=float_dtype)
 
 
@@ -55,10 +52,9 @@ class NaiveSurfaceNetStrategy(DualVertexStrategy):
         self,
         active_voxels: np.ndarray,
         edge_coords: np.ndarray,
-        top: "VoxelTopology",
         grid: "Grid",
     ) -> np.ndarray:
-        active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
+        active_voxel_edges = grid.find_voxel_edges(active_voxels)  # (M,12)
         e = edge_coords[active_voxel_edges]  # (M,12,3)
         return np.nanmean(e, 1)  # (M,3)
 
@@ -122,18 +118,17 @@ class DualContouringStrategy(DualVertexStrategy):
         self,
         active_voxels: np.ndarray,
         edge_coords: np.ndarray,
-        top: "VoxelTopology",
         grid: "Grid",
     ) -> np.ndarray:
-        sijk = top.unravel_nd(active_voxels, top.sample_shape)  # (M,3)
-        active_voxel_edges = top.find_voxel_edges(active_voxels)  # (M,12)
+        sijk = grid.unravel_nd(active_voxels, grid.padded_shape)  # (M,3)
+        active_voxel_edges = grid.find_voxel_edges(active_voxels)  # (M,12)
         points = edge_coords[active_voxel_edges]  # (M,12,3)
         normals = self.node.gradient(
             self._to_data(grid, points), normalize=True
         )  # (M,12,3)
         if self.bias_mode != "disabled":
             bias_verts = NaiveSurfaceNetStrategy().find_vertex_locations(
-                active_voxels, edge_coords, top, grid
+                active_voxels, edge_coords, grid
             )
         else:
             bias_verts = [None] * len(points)

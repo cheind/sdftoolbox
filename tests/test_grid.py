@@ -1,22 +1,22 @@
 import numpy as np
 from numpy.testing import assert_allclose
-from surfacenets.topology import VoxelTopology
-
+from surfacenets import Grid
 from surfacenets.utils import reorient_volume
 
 
 def test_correct_shapes():
-    t = VoxelTopology((3, 3, 3))
-    assert t.sample_shape == (3, 3, 3)
-    assert t.edge_shape == (2, 2, 2, 3)
-    assert t.num_edges == np.prod((2, 2, 2, 3))
+    g = Grid((2, 2, 2))
+    assert g.shape == (2, 2, 2)
+    assert g.padded_shape == (3, 3, 3)
+    assert g.num_edges == np.prod((2, 2, 2, 3))
+    assert g.edge_shape == (2, 2, 2, 3)
 
 
 def test_find_edge_vertices():
-    t = VoxelTopology((3, 3, 3))
-    test = np.zeros(t.sample_shape, dtype=np.int32)
+    g = Grid((2, 2, 2))
+    test = np.zeros(g.padded_shape, dtype=np.int32)
 
-    sijk, tijk = t.find_edge_vertices(range(t.num_edges), ravel=False)
+    sijk, tijk = g.find_edge_vertices(range(g.num_edges), ravel=False)
     si, sj, sk = sijk.T
     ti, tj, tk = tijk.T
 

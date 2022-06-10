@@ -1,15 +1,15 @@
 import logging
 import time
 from typing import TYPE_CHECKING
+
 import numpy as np
 
-from .tesselation import triangulate_quads
-from .topology import VoxelTopology
 from .dual_strategies import NaiveSurfaceNetStrategy
+from .tesselation import triangulate_quads
 
 if TYPE_CHECKING:
-    from .grid import Grid
     from .dual_strategies import DualVertexStrategy
+    from .grid import Grid
 
 
 _logger = logging.getLogger("surfacenets")
@@ -72,15 +72,12 @@ def dual_isosurface(
     # vectorization, this avoids fancy indexing the SDF volume and has performance
     # advantages.
 
-    # We construct a topology helper to deal with indices and neighborhoods.
-    top = VoxelTopology(sdf_values.shape)
-
-    edges_active_mask = np.zeros((top.num_edges,), dtype=bool)
-    edges_flip_mask = np.zeros((top.num_edges,), dtype=bool)
-    edges_isect_coords = np.full((top.num_edges, 3), np.nan, dtype=sdf_values.dtype)
+    edges_active_mask = np.zeros((grid.num_edges,), dtype=bool)
+    edges_flip_mask = np.zeros((grid.num_edges,), dtype=bool)
+    edges_isect_coords = np.full((grid.num_edges, 3), np.nan, dtype=sdf_values.dtype)
 
     # Get all possible edge source locations
-    sijk = top.get_all_source_vertices()  # (N,3)
+    sijk = grid.get_all_source_vertices()  # (N,3)
     si, sj, sk = sijk.T
     sdf_src = sdf_values[si, sj, sk]  # (N,)
 
@@ -109,7 +106,7 @@ def dual_isosurface(
 
         # We store the partial axis results in the global arrays in interleaved
         # fashion. We do this, to comply with np.unravel_index/np.ravel_multi_index
-        # that are used internally by the topology module.
+        # that are used internally by the grid module.
         edges_active_mask[aidx::3] = active
         edges_flip_mask[aidx::3][active] = sdf_diff[active] < 0.0
         edges_isect_coords[aidx::3][active] = isect_coords
@@ -122,7 +119,7 @@ def dual_isosurface(
     # where a full neighborhood exists - i.e non of the adjacent voxels is in the
     # padding area.
     active_edges = np.where(edges_active_mask)[0]  # (A,)
-    active_quads, complete_mask = top.find_voxels_sharing_edge(active_edges)  # (A,4)
+    active_quads, complete_mask = grid.find_voxels_sharing_edge(active_edges)  # (A,4)
     active_edges = active_edges[complete_mask]
     active_quads = active_quads[complete_mask]
     _logger.debug(f"After finding quads; elapsed {time.perf_counter() - t0:.4f} secs")
@@ -147,7 +144,7 @@ def dual_isosurface(
     # For each active voxel, we need to find one vertex location. The
     # method todo that depennds on `vertex_placement_mode`. No matter which method
     # is selected, we expect the returned coordinates to be in voxel space.
-    verts = strategy.find_vertex_locations(active_voxels, edges_isect_coords, top, grid)
+    verts = strategy.find_vertex_locations(active_voxels, edges_isect_coords, grid)
 
     # Finally, we need to account for the padded voxels and scale them to
     # data dimensions

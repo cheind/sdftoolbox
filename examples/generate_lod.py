@@ -24,13 +24,10 @@ def main():
         res=(65, 65, 65), min_corner=(-1.1, -1.1, -1.1), max_corner=(1.1, 1.1, 1.1)
     )
 
-    # Sample one in full res
-    sdfv = scene.sample(grid.xyz)
-
     for idx in range(1, 6):
         step = 2**idx
         verts, faces = sn.dual_isosurface(
-            sdfv[::step, ::step, ::step],
+            scene,
             grid.subsample(step),
             triangulate=False,
         )

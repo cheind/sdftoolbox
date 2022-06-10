@@ -1,6 +1,6 @@
 import numpy as np
 import abc
-from typing import Literal, Optional, TYPE_CHECKING
+from typing import Literal, Optional, TYPE_CHECKING, Protocol
 
 from .types import float_dtype
 
@@ -22,6 +22,7 @@ class DualVertexStrategy(abc.ABC):
         self,
         active_voxels: np.ndarray,
         edge_coords: np.ndarray,
+        node: "SDF",
         grid: "Grid",
     ) -> np.ndarray:
         pass
@@ -35,9 +36,11 @@ class MidpointStrategy(DualVertexStrategy):
     def find_vertex_locations(
         self,
         active_voxels: np.ndarray,
-        grid: "Grid",
         edge_coords: np.ndarray,
+        node: "SDF",
+        grid: "Grid",
     ) -> np.ndarray:
+        del node, edge_coords
         sijk = grid.unravel_nd(active_voxels, grid.padded_shape)
         return sijk + np.array([[0.5, 0.5, 0.5]], dtype=float_dtype)
 
@@ -59,8 +62,10 @@ class NaiveSurfaceNetStrategy(DualVertexStrategy):
         self,
         active_voxels: np.ndarray,
         edge_coords: np.ndarray,
+        node: "SDF",
         grid: "Grid",
     ) -> np.ndarray:
+        del node
         active_voxel_edges = grid.find_voxel_edges(active_voxels)  # (M,12)
         e = edge_coords[active_voxel_edges]  # (M,12,3)
         return np.nanmean(e, 1)  # (M,3)
@@ -111,12 +116,10 @@ class DualContouringStrategy(DualVertexStrategy):
 
     def __init__(
         self,
-        node: "SDF",
         bias_mode: Literal["always", "failed", "disabled"] = "always",
         bias_strength: float = 1e-3,
     ):
         assert bias_mode in ["always", "failed", "disabled"]
-        self.node = node
         self.bias_strength = bias_strength
         self.sqrt_bias_strength = np.sqrt(self.bias_strength)
         self.bias_mode = bias_mode
@@ -125,15 +128,16 @@ class DualContouringStrategy(DualVertexStrategy):
         self,
         active_voxels: np.ndarray,
         edge_coords: np.ndarray,
+        node: "SDF",
         grid: "Grid",
     ) -> np.ndarray:
         sijk = grid.unravel_nd(active_voxels, grid.padded_shape)  # (M,3)
         active_voxel_edges = grid.find_voxel_edges(active_voxels)  # (M,12)
         points = edge_coords[active_voxel_edges]  # (M,12,3)
-        normals = self.node.gradient(grid.grid_to_data(points))  # (M,12,3)
+        normals = node.gradient(grid.grid_to_data(points))  # (M,12,3)
         if self.bias_mode != "disabled":
             bias_verts = NaiveSurfaceNetStrategy().find_vertex_locations(
-                active_voxels, edge_coords, grid
+                active_voxels, edge_coords, node, grid
             )
         else:
             bias_verts = [None] * len(points)

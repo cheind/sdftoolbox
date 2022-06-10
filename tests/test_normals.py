@@ -6,11 +6,10 @@ def test_plane_normals():
     def gen_normals(n: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         scene = sn.sdfs.Plane.create((0.01, 0.01, 0.01), normal=n)
         grid = sn.Grid(res=(3, 3, 3))
-        sdfv = scene.sample(grid.xyz)
 
         # Extract the surface using quadliterals
         verts, faces = sn.dual_isosurface(
-            sdfv,
+            scene,
             grid,
             strategy=sn.NaiveSurfaceNetStrategy(),
             triangulate=False,

@@ -16,16 +16,13 @@ def main():
         alpha=8,
     )
     # Generate the sampling locations. Here we use the default params
-    grid = sn.Grid()
-
-    # Evaluate the SDF
-    sdfv = scene.sample(grid.xyz)
+    grid = sn.Grid(res=(32, 32, 32))
 
     # Extract the surface using dual contouring
     verts, faces = sn.dual_isosurface(
-        sdfv,
+        scene,
         grid,
-        strategy=sn.DualContouringStrategy(scene),
+        strategy=sn.DualContouringStrategy(),
         triangulate=False,
     )
 

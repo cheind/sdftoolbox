@@ -11,13 +11,10 @@ def main():
     grid = sn.Grid((5, 5, 5))
 
     # Generate mesh
-    sdfv = scene.sample(grid.xyz)
     verts, faces = sn.dual_isosurface(
-        sdfv,
+        scene,
         grid,
-        strategy=sn.DualContouringStrategy(
-            scene,
-        ),
+        strategy=sn.DualContouringStrategy(),
         # strategy=sn.NaiveSurfaceNetStrategy(),
         triangulate=False,
     )
@@ -30,7 +27,7 @@ def main():
 
     # Plot mesh+normals
     fig, ax = sn.plotting.create_mesh_figure(verts, faces, face_normals, vert_normals)
-    sn.plotting.plot_samples(ax, grid.xyz, sdfv)
+    sn.plotting.plot_samples(ax, grid.xyz, scene.sample(grid.xyz))
     # sn.plotting.generate_rotation_gif("normals.gif", fig, ax)
     plt.show()
 

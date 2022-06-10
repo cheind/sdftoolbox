@@ -7,12 +7,10 @@ import numpy as np
 
 def extract(scene: sn.sdfs.SDF, grid: sn.Grid):
 
-    sdfv = scene.sample(grid.xyz)
-
     verts, faces = sn.dual_isosurface(
-        sdfv,
+        scene,
         grid,
-        strategy=sn.DualContouringStrategy(scene),
+        strategy=sn.DualContouringStrategy(),
         triangulate=False,
     )
     return verts, faces

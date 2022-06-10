@@ -10,13 +10,14 @@ from .tesselation import triangulate_quads
 if TYPE_CHECKING:
     from .dual_strategies import DualVertexStrategy
     from .grid import Grid
+    from .sdfs import SDF
 
 
 _logger = logging.getLogger("surfacenets")
 
 
 def dual_isosurface(
-    sdf_values: np.ndarray,
+    node: "SDF",
     grid: "Grid",
     strategy: "DualVertexStrategy" = None,
     triangulate: bool = False,
@@ -30,8 +31,9 @@ def dual_isosurface(
     for details.
 
     Params:
-        sdf_values: (I,J,K) array if SDF values at sample locations
-        grid: spatial sampling locations
+        node: the root node of the SDF. If you already have discretized SDF values in
+            grid like fashion, wrap them using sdfs.Discretized.
+        grid: (I,J,K) spatial sampling locations
         strategy: Defines how vertices are placed inside of voxels. Defaults to naive
             surface nets.
         triangulate: When true, returns triangles instead of quadliterals.
@@ -49,13 +51,11 @@ def dual_isosurface(
     # Sanity checks
     if strategy is None:
         strategy = NaiveSurfaceNetStrategy()
-    assert sdf_values.ndim == 3
-    assert sdf_values.shape == grid.shape[:3]
 
     # First, we pad the sample volume on each side with a single (nan) value to
     # avoid having to deal with most out-of-bounds issues.
-    sdf_values = np.pad(
-        sdf_values,
+    padded_sdf_values = np.pad(
+        node.sample(grid.xyz),
         ((0, 1), (0, 1), (0, 1)),
         mode="constant",
         constant_values=np.nan,
@@ -74,12 +74,14 @@ def dual_isosurface(
 
     edges_active_mask = np.zeros((grid.num_edges,), dtype=bool)
     edges_flip_mask = np.zeros((grid.num_edges,), dtype=bool)
-    edges_isect_coords = np.full((grid.num_edges, 3), np.nan, dtype=sdf_values.dtype)
+    edges_isect_coords = np.full(
+        (grid.num_edges, 3), np.nan, dtype=padded_sdf_values.dtype
+    )
 
     # Get all possible edge source locations
     sijk = grid.get_all_source_vertices()  # (N,3)
     si, sj, sk = sijk.T
-    sdf_src = sdf_values[si, sj, sk]  # (N,)
+    sdf_src = padded_sdf_values[si, sj, sk]  # (N,)
 
     _logger.debug(f"After initialization; elapsed {time.perf_counter() - t0:.4f} secs")
 
@@ -88,7 +90,7 @@ def dual_isosurface(
         # Compute the edge target locations and fetch SDF values
         tijk = sijk + off[None, :]
         ti, tj, tk = tijk.T
-        sdf_dst = sdf_values[ti, tj, tk]
+        sdf_dst = padded_sdf_values[ti, tj, tk]
 
         # Just like in MC, we compute a parametric value t for each edge that
         # tells use where the surface boundary intersects the edge. We assume
@@ -144,7 +146,9 @@ def dual_isosurface(
     # For each active voxel, we need to find one vertex location. The
     # method todo that depennds on `vertex_placement_mode`. No matter which method
     # is selected, we expect the returned coordinates to be in voxel space.
-    grid_verts = strategy.find_vertex_locations(active_voxels, edges_isect_coords, grid)
+    grid_verts = strategy.find_vertex_locations(
+        active_voxels, edges_isect_coords, node, grid
+    )
 
     # Finally, we need to account for the padded voxels and scale them to
     # data dimensions

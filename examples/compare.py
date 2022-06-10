@@ -30,7 +30,7 @@ def main():
 
     t0 = time.perf_counter()
     verts_sn, faces_sn = sn.dual_isosurface(
-        sdfv,
+        scene,
         grid,
         triangulate=False,
     )

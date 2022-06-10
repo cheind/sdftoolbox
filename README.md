@@ -32,22 +32,39 @@ See [examples/compare.py](examples/compare.py) for details.
 import surfacenets as sn
 
 # Setup a snowman-scene
-scene = sn.sdfs.Union(
+snowman = sn.sdfs.Union(
     [
         sn.sdfs.Sphere.create(center=(0, 0, 0), radius=0.4),
         sn.sdfs.Sphere.create(center=(0, 0, 0.45), radius=0.3),
         sn.sdfs.Sphere.create(center=(0, 0, 0.8), radius=0.2),
     ],
-    alpha=8,
 )
-# Generate sampling locations.
-grid = sn.Grid(res=(32, 32, 32))
+family = sn.sdfs.Union(
+    [
+        snowman.transform(trans=(-0.75, 0.0, 0.0)),
+        snowman.transform(trans=(0.0, -0.3, 0.0), scale=0.8),
+        snowman.transform(trans=(0.75, 0.0, 0.0), scale=0.6),
+    ]
+)
+scene = sn.sdfs.Difference(
+    [
+        family,
+        sn.sdfs.Plane().transform(trans=(0, 0, -0.2)),
+    ]
+)
+
+# Generate the sampling locations. Here we use the default params
+grid = sn.Grid(
+    res=(65, 65, 65),
+    min_corner=(-1.5, -1.5, -1.5),
+    max_corner=(1.5, 1.5, 1.5),
+)
 
 # Extract the surface using dual contouring
 verts, faces = sn.dual_isosurface(
     scene,
     grid,
-    strategy=sn.DualContouringStrategy(),
+    strategy=sn.NaiveSurfaceNetStrategy(),
     triangulate=False,
 )
 ```

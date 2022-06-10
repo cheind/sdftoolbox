@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .dual_strategies import NaiveSurfaceNetStrategy
+from .dual_strategies import NaiveSurfaceNetVertexStrategy
 from .mesh import triangulate_quads
 
 if TYPE_CHECKING:
@@ -50,7 +50,7 @@ def dual_isosurface(
     t0 = time.perf_counter()
     # Sanity checks
     if strategy is None:
-        strategy = NaiveSurfaceNetStrategy()
+        strategy = NaiveSurfaceNetVertexStrategy()
 
     # First, we pad the sample volume on each side with a single (nan) value to
     # avoid having to deal with most out-of-bounds issues.

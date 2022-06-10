@@ -16,7 +16,7 @@ def main():
     verts, faces = sn.dual_isosurface(
         scene,
         grid,
-        strategy=sn.DualContouringStrategy(),
+        strategy=sn.DualContouringVertexStrategy(),
         # strategy=sn.NaiveSurfaceNetStrategy(),
         triangulate=False,
     )

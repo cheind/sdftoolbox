@@ -28,7 +28,7 @@ class DualVertexStrategy(abc.ABC):
         pass
 
 
-class MidpointStrategy(DualVertexStrategy):
+class MidpointVertexStrategy(DualVertexStrategy):
     """Computes vertex locations based on voxel centers.
     This results in Minecraft-like reconstructions.
     """
@@ -45,7 +45,7 @@ class MidpointStrategy(DualVertexStrategy):
         return sijk + np.array([[0.5, 0.5, 0.5]], dtype=float_dtype)
 
 
-class NaiveSurfaceNetStrategy(DualVertexStrategy):
+class NaiveSurfaceNetVertexStrategy(DualVertexStrategy):
     """Computes vertex locations based on averaging edge intersection points.
 
     Each vertex location is chosen to be the average of intersection points
@@ -71,7 +71,7 @@ class NaiveSurfaceNetStrategy(DualVertexStrategy):
         return np.nanmean(e, 1)  # (M,3)
 
 
-class DualContouringStrategy(DualVertexStrategy):
+class DualContouringVertexStrategy(DualVertexStrategy):
     """Computes vertex locations based on dual-contouring strategy.
 
     This method additionally requires intersection normals. The idea
@@ -136,7 +136,7 @@ class DualContouringStrategy(DualVertexStrategy):
         points = edge_coords[active_voxel_edges]  # (M,12,3)
         normals = node.gradient(grid.grid_to_data(points))  # (M,12,3)
         if self.bias_mode != "disabled":
-            bias_verts = NaiveSurfaceNetStrategy().find_vertex_locations(
+            bias_verts = NaiveSurfaceNetVertexStrategy().find_vertex_locations(
                 active_voxels, edge_coords, node, grid
             )
         else:

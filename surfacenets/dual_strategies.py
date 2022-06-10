@@ -10,6 +10,13 @@ if TYPE_CHECKING:
 
 
 class DualVertexStrategy(abc.ABC):
+    """Base class for methods that compute vertex locations.
+
+    In dual methods one vertex per active voxel is required.
+    A voxel is active if at least one of 12 edges belonging
+    to the voxel is intersected by the surface boundary.
+    """
+
     @abc.abstractmethod
     def find_vertex_locations(
         self,

@@ -35,7 +35,8 @@ def main():
         )
         # The lower the resolution the higher the chance of violating the
         # linearity assumptions when determining edge intersections. Here we
-        # improve by reprojecting vertices onto the SDF.
+        # improve by reprojecting vertices onto the SDF. This also counterfights
+        # shrinkage induced by vertex placement strategies.
         verts = sn.mesh.project_vertices(scene, verts)
         verts += (idx * 3, 0, 0)
         max_corner = np.maximum(verts.max(0), max_corner)

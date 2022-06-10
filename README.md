@@ -41,19 +41,15 @@ scene = sn.sdfs.Union(
     alpha=8,
 )
 # Generate the sampling locations. Here we use the default params
-xyz, spacing = sn.sdfs.Discretized.sampling_coords()
+grid = sn.Grid(res=(32, 32, 32))
 
-# Evaluate the SDF
-sdfv = scene.sample(xyz)
-
-# Extract the surface using quadliterals
+# Extract the surface using dual contouring
 verts, faces = sn.dual_isosurface(
-    sdfv,
-    spacing=spacing,
-    strategy=sn.NaiveSurfaceNetStrategy(),
+    scene,
+    grid,
+    strategy=sn.DualContouringStrategy(),
     triangulate=False,
 )
-verts += xyz[0, 0, 0]
 ```
 
 generates

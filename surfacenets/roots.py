@@ -1,6 +1,5 @@
 """Root finding methods for SDFs"""
 
-from sys import maxunicode
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -21,8 +20,8 @@ def directional_newton_roots(
     Params:
         node: SDF root node
         x: (N,3) initial locations
-        dirs: (N,3) fixed directions (optional). When not given, the directions are chosen
-            to be the directions of gradient estimates.
+        dirs: (N,3) fixed directions (optional). When not given, the directions are
+            chosen to be the directions of gradient estimates.
         max_steps: max number of iterations
         eps:
 

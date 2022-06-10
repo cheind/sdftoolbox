@@ -11,7 +11,6 @@ class Grid:
     """
 
     """Offsets used to compute the edge indices for a single voxel."""
-
     VOXEL_EDGE_OFFSETS = np.array(
         [
             [0, 0, 0, 0],

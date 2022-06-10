@@ -204,8 +204,11 @@ def create_mesh_figure(
         fig: matplotlib figure
         ax: matplotlib axis
     """
-    min_corner = verts.min(0) - 0.5
-    max_corner = verts.max(0) + 0.5
+    min_corner = verts.min(0)
+    max_corner = verts.max(0)
+    mask = abs(max_corner - min_corner) < 1e-5
+    min_corner[mask] -= 0.5
+    max_corner[mask] += 0.5
 
     fig_kwargs = fig_kwargs or {}
 

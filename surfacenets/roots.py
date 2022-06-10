@@ -27,7 +27,7 @@ def directional_newton_roots(
 
     See:
     Levin, Yuri, and Adi Ben-Israel.
-    "Directional Newton methods in 𝑛 variables."
+    "Directional Newton methods in n variables."
     Mathematics of Computation 71.237 (2002): 251-262.
     """
     x = np.atleast_2d(x).copy()

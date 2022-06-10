@@ -40,7 +40,7 @@ scene = sn.sdfs.Union(
     ],
     alpha=8,
 )
-# Generate the sampling locations. Here we use the default params
+# Generate sampling locations.
 grid = sn.Grid(res=(32, 32, 32))
 
 # Extract the surface using dual contouring

@@ -21,7 +21,9 @@ def main():
     # always contains the endpoint. This is important, since the sampling
     # bounds are close the surface of the sphere.
     grid = sn.Grid(
-        res=(65, 65, 65), min_corner=(-1.1, -1.1, -1.1), max_corner=(1.1, 1.1, 1.1)
+        res=(65, 65, 65),
+        min_corner=(-1.1, -1.1, -1.1),
+        max_corner=(1.1, 1.1, 1.1),
     )
 
     for idx in range(1, 6):
@@ -31,6 +33,10 @@ def main():
             grid.subsample(step),
             triangulate=False,
         )
+        # The lower the resolution the higher the chance of violating the
+        # linearity assumptions when determining edge intersections. Here we
+        # improve by reprojecting vertices onto the SDF.
+        verts = sn.mesh.project_vertices(scene, verts)
         verts += (idx * 3, 0, 0)
         max_corner = np.maximum(verts.max(0), max_corner)
         min_corner = np.minimum(verts.min(0), min_corner)

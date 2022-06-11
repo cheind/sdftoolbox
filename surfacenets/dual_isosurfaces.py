@@ -4,11 +4,15 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .dual_strategies import NaiveSurfaceNetVertexStrategy
+from .dual_strategies import (
+    DualEdgeStrategy,
+    NaiveSurfaceNetVertexStrategy,
+    LinearEdgeStrategy,
+)
 from .mesh import triangulate_quads
 
 if TYPE_CHECKING:
-    from .dual_strategies import DualVertexStrategy
+    from .dual_strategies import DualVertexStrategy, DualEdgeStrategy
     from .grid import Grid
     from .sdfs import SDF
 
@@ -20,6 +24,7 @@ def dual_isosurface(
     node: "SDF",
     grid: "Grid",
     vertex_strategy: "DualVertexStrategy" = None,
+    edge_strategy: "DualEdgeStrategy" = None,
     triangulate: bool = False,
 ):
     """A vectorized dual iso-surface extraction algorithm for signed distance fields.
@@ -48,9 +53,11 @@ def dual_isosurface(
             models from binary segmented data.
     """
     t0 = time.perf_counter()
-    # Sanity checks
+    # Defaults
     if vertex_strategy is None:
         vertex_strategy = NaiveSurfaceNetVertexStrategy()
+    if edge_strategy is None:
+        edge_strategy = LinearEdgeStrategy()
 
     # First, we pad the sample volume on each side with a single (nan) value to
     # avoid having to deal with most out-of-bounds issues.
@@ -91,18 +98,17 @@ def dual_isosurface(
         tijk = sijk + off[None, :]
         ti, tj, tk = tijk.T
         sdf_dst = padded_sdf_values[ti, tj, tk]
+        sdf_diff = sdf_dst - sdf_src
 
         # Just like in MC, we compute a parametric value t for each edge that
-        # tells use where the surface boundary intersects the edge. We assume
-        # the surface behaves linearily close to an edge and the edge crossing
-        # value t can be approximated by linear equation. Note, active edges
-        # have t value in [0,1].
-        sdf_diff = sdf_dst - sdf_src
-        sdf_diff[sdf_diff == 0] = 1e-8
-        t = -sdf_src / sdf_diff
+        # tells use where the surface boundary intersects the edge.
+        t = edge_strategy.find_edge_intersections(
+            sijk, sdf_src, tijk, sdf_dst, aidx, node, grid
+        )
+        # Values within [0,1) correspond to active edge intersections.
         active = np.logical_and(t >= 0, t < 1.0)  # t==1 is t==0 for next edge
         t[~active] = np.nan
-
+        # Compute the floating point grid coords of intersection
         active_t = t[active, None]
         isect_coords = (1 - active_t) * sijk[active] + active_t * tijk[active]
 

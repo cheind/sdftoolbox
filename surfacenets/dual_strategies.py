@@ -1,6 +1,6 @@
 import numpy as np
 import abc
-from typing import Literal, Optional, TYPE_CHECKING, Protocol
+from typing import Literal, Optional, TYPE_CHECKING
 
 from .types import float_dtype
 
@@ -173,3 +173,64 @@ class DualContouringVertexStrategy(DualVertexStrategy):
             b = np.concatenate((b, d), 0)
         x, res, rank, _ = np.linalg.lstsq(A.astype(float), b.astype(float), rcond=None)
         return x.astype(q.dtype)
+
+
+class DualEdgeStrategy(abc.ABC):
+    """Base class for methods that edge/surface intersections.
+
+    Similar to primal methods, dual methods rely on determining
+    voxel edges that intersect the boundary of the surface. We
+    call an edge active if intersects the surface boundary
+    between the two edge endpoints.
+
+    Each strategy is supposed to compute a scalar `t` for each
+    edge in question that marks the point of intersection along
+    the edge. For active edges t is in [0,1), for non-active edges
+    outside of this range.
+    """
+
+    @abc.abstractmethod
+    def find_edge_intersections(
+        self,
+        src_ijk: np.ndarray,
+        src_sdf: np.ndarray,
+        dst_ijk: np.ndarray,
+        dst_sdf: np.ndarray,
+        edge_dir: int,
+        node: "SDF",
+        grid: "Grid",
+    ) -> np.ndarray:
+        pass
+
+
+class LinearEdgeStrategy(DualEdgeStrategy):
+    """Determine edge intersections by a linear equation.
+
+    This is the most commonly found method for determining the intersection
+    between edges and surface boundaries. It assumes that a) the surface is
+    smooth and b) edges are 'infinitely' small compared to surface shape. If
+    both promises hold, the surface will be linear close to the edge,
+    and hence an intersection is given by the root of straight line through
+    (0,sdf_src) and (1, sdf_dst).
+
+    Note, for the line to have a root within edge bounds, the sign of
+    sdf_src and sdf_dst must differ. We don't check this explicitly, because
+    the method is allowed to return t values outside of [0,1).
+    """
+
+    def find_edge_intersections(
+        self,
+        src_ijk: np.ndarray,
+        src_sdf: np.ndarray,
+        dst_ijk: np.ndarray,
+        dst_sdf: np.ndarray,
+        edge_dir: int,
+        node: "SDF",
+        grid: "Grid",
+    ) -> np.ndarray:
+        del src_ijk, dst_ijk, edge_dir, node, grid
+        t = np.full_like(src_sdf, -1.0)
+        delta = dst_sdf - src_sdf
+        mask = delta != 0.0
+        t[mask] = -src_sdf[mask] / delta[mask]
+        return t

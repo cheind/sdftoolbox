@@ -283,3 +283,7 @@ class Grid:
     def grid_to_data(self, x: np.ndarray) -> np.ndarray:
         """Convert coordinates in grid space to data space."""
         return x * self.spacing + self.min_corner
+
+    def data_to_grid(self, x: np.ndarray) -> np.ndarray:
+        """Convert coordinates in data space to grid space."""
+        return (x - self.min_corner) / self.spacing

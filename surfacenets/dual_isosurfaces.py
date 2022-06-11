@@ -59,7 +59,7 @@ def dual_isosurface(
     if edge_strategy is None:
         edge_strategy = LinearEdgeStrategy()
 
-    # First, we pad the sample volume on each side with a single (nan) value to
+    # First, we pad the sample volume on each outer boundary single (nan) value to
     # avoid having to deal with most out-of-bounds issues.
     padded_sdf_values = np.pad(
         node.sample(grid.xyz),

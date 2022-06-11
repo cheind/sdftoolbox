@@ -3,7 +3,7 @@ import abc
 from typing import Literal, Optional, TYPE_CHECKING
 
 from .types import float_dtype
-from .roots import directional_newton_roots
+from .roots import directional_newton_roots, bisect_roots
 
 if TYPE_CHECKING:
     from .grid import Grid
@@ -197,11 +197,31 @@ class DualEdgeStrategy(abc.ABC):
         src_sdf: np.ndarray,
         dst_ijk: np.ndarray,
         dst_sdf: np.ndarray,
+        edge_dir_index: int,
         edge_dir: int,
         node: "SDF",
         grid: "Grid",
     ) -> np.ndarray:
         pass
+
+    @staticmethod
+    def find_active_edge_mask(src_sdf: np.ndarray, dst_sdf: np.ndarray) -> np.ndarray:
+        """Find the active edges.
+
+        By intermediate value theorem for continuous functions if the sign of src
+        and dst is different, there must be a root enclosed. We also avoid edges
+        with NaNs, that might occur at boundaries as induced by potential SDF padding.
+
+        Params:
+            src_sdf: (...,N) SDF values at first endpoint
+            dst_sdf (...,N) SDF values at second endpoint
+
+        Returns:
+            mask: (...,N) active edge mask
+        """
+        src_sign = np.sign(src_sdf)
+        dst_sign = np.sign(dst_sdf)
+        return np.logical_and(src_sign != dst_sign, np.isfinite(dst_sdf))
 
 
 class LinearEdgeStrategy(DualEdgeStrategy):
@@ -251,6 +271,11 @@ class NewtonEdgeStrategy(DualEdgeStrategy):
     directional Newton root finding.
     """
 
+    def __init__(self, max_steps: int = 10, eps=1e-8) -> None:
+        super().__init__()
+        self.max_steps = max_steps
+        self.eps = eps
+
     def find_edge_intersections(
         self,
         src_ijk: np.ndarray,
@@ -264,20 +289,68 @@ class NewtonEdgeStrategy(DualEdgeStrategy):
     ) -> np.ndarray:
         del dst_ijk
         t = np.full_like(src_sdf, -1.0)
-        # By intermediate value theorem for continuous functions
-        # if the sign of src and dst is different, there must
-        # be a root enclosed.
-        src_sign = np.sign(src_sdf)
-        dst_sign = np.sign(dst_sdf)
-        mask = np.logical_and(src_sign != dst_sign, np.isfinite(dst_sdf))
 
-        # We use as start points the midpoint
+        mask = DualEdgeStrategy.find_active_edge_mask(src_sdf, dst_sdf)
+
+        # We use linearly interpolated start points
         tlinear = LinearEdgeStrategy.compute_linear_roots(src_sdf[mask], dst_sdf[mask])
         x_grid = src_ijk[mask] + edge_dir[None, :] * tlinear[:, None]
         x_data = grid.grid_to_data(x_grid)
 
         # Perform the optimization
-        x_data = directional_newton_roots(node, x_data, edge_dir)
+        x_data = directional_newton_roots(
+            node, x_data, edge_dir, max_steps=self.max_steps, eps=self.eps
+        )
+        x_grid = grid.data_to_grid(x_data)
+
+        # Compute updated results.
+        t[mask] = (x_grid - src_ijk[mask])[:, edge_dir_index]
+        t[mask] = np.clip(t[mask], 0, 1.0)
+
+        return t
+
+
+class BisectionEdgeStrategy(DualEdgeStrategy):
+    def __init__(
+        self,
+        max_steps: int = 10,
+        eps=1e-8,
+        linear_interp: bool = False,
+    ) -> None:
+        self.max_steps = max_steps
+        self.eps = eps
+        self.linear_interp = linear_interp
+
+    def find_edge_intersections(
+        self,
+        src_ijk: np.ndarray,
+        src_sdf: np.ndarray,
+        dst_ijk: np.ndarray,
+        dst_sdf: np.ndarray,
+        edge_dir_index: int,
+        edge_dir: int,
+        node: "SDF",
+        grid: "Grid",
+    ) -> np.ndarray:
+
+        t = np.full_like(src_sdf, -1.0)
+        mask = DualEdgeStrategy.find_active_edge_mask(src_sdf, dst_sdf)
+
+        # We use linearly interpolated start points
+        tlinear = LinearEdgeStrategy.compute_linear_roots(src_sdf[mask], dst_sdf[mask])
+        x_grid = src_ijk[mask] + edge_dir[None, :] * tlinear[:, None]
+        x_data0 = grid.grid_to_data(x_grid)
+
+        # Perform the optimization
+        x_data = bisect_roots(
+            node,
+            grid.grid_to_data(src_ijk[mask]),
+            grid.grid_to_data(dst_ijk[mask]),
+            x_data0,
+            max_steps=self.max_steps,
+            eps=self.eps,
+            linear_interp=self.linear_interp,
+        )
         x_grid = grid.data_to_grid(x_data)
 
         # Compute updated results.

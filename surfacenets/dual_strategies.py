@@ -3,6 +3,7 @@ import abc
 from typing import Literal, Optional, TYPE_CHECKING
 
 from .types import float_dtype
+from .roots import directional_newton_roots
 
 if TYPE_CHECKING:
     from .grid import Grid
@@ -224,13 +225,65 @@ class LinearEdgeStrategy(DualEdgeStrategy):
         src_sdf: np.ndarray,
         dst_ijk: np.ndarray,
         dst_sdf: np.ndarray,
-        edge_dir: int,
+        edge_dir_index: int,
+        edge_dir: np.ndarray,
         node: "SDF",
         grid: "Grid",
     ) -> np.ndarray:
-        del src_ijk, dst_ijk, edge_dir, node, grid
+        del src_ijk, dst_ijk, edge_dir, node, grid, edge_dir_index
         t = np.full_like(src_sdf, -1.0)
         delta = dst_sdf - src_sdf
         mask = delta != 0.0
         t[mask] = -src_sdf[mask] / delta[mask]
+        return t
+
+    @staticmethod
+    def compute_linear_roots(src_sdf: np.ndarray, dst_sdf: np.ndarray) -> np.ndarray:
+        return -src_sdf / (dst_sdf - src_sdf)
+
+
+class NewtonEdgeStrategy(DualEdgeStrategy):
+    """Determine edge intersections by Newton root finding.
+
+    If the assumptions of LinearEdgeStrategy do not hold, but
+    the gradient of the SDF still holds information along the
+    edge direction one can find the root by performing iterative
+    directional Newton root finding.
+    """
+
+    def find_edge_intersections(
+        self,
+        src_ijk: np.ndarray,
+        src_sdf: np.ndarray,
+        dst_ijk: np.ndarray,
+        dst_sdf: np.ndarray,
+        edge_dir_index: int,
+        edge_dir: int,
+        node: "SDF",
+        grid: "Grid",
+    ) -> np.ndarray:
+        del dst_ijk
+        t = np.full_like(src_sdf, -1.0)
+        # By intermediate value theorem for continuous functions
+        # if the sign of src and dst is different, there must
+        # be a root enclosed.
+        src_sign = np.sign(src_sdf)
+        dst_sign = np.sign(dst_sdf)
+        mask = np.logical_and(src_sign != dst_sign, np.isfinite(dst_sdf))
+
+        # We use as start points the midpoint
+        tlinear = LinearEdgeStrategy.compute_linear_roots(src_sdf[mask], dst_sdf[mask])
+        x_grid = src_ijk[mask] + edge_dir[None, :] * tlinear[:, None]
+        x_data = grid.grid_to_data(x_grid)
+
+        # Perform the optimization
+        x_data = directional_newton_roots(
+            node, x_data, edge_dir[None, :].repeat(len(x_data), 0)
+        )
+        x_grid = grid.data_to_grid(x_data)
+
+        # Compute updated results.
+        t[mask] = (x_grid - src_ijk[mask])[:, edge_dir_index]
+        t[mask] = np.clip(t[mask], 0, 1.0)
+
         return t

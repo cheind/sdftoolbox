@@ -4,6 +4,8 @@ from .dual_strategies import (
     MidpointVertexStrategy,
     NaiveSurfaceNetVertexStrategy,
     DualContouringVertexStrategy,
+    LinearEdgeStrategy,
+    NewtonEdgeStrategy,
 )
 from .grid import Grid
 from . import sdfs

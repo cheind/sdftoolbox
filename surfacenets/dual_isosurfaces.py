@@ -103,7 +103,7 @@ def dual_isosurface(
         # Just like in MC, we compute a parametric value t for each edge that
         # tells use where the surface boundary intersects the edge.
         t = edge_strategy.find_edge_intersections(
-            sijk, sdf_src, tijk, sdf_dst, aidx, node, grid
+            sijk, sdf_src, tijk, sdf_dst, aidx, off, node, grid
         )
         # Values within [0,1) correspond to active edge intersections.
         active = np.logical_and(t >= 0, t < 1.0)  # t==1 is t==0 for next edge

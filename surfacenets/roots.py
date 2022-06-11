@@ -23,8 +23,9 @@ def directional_newton_roots(
     Params:
         node: SDF root node
         x: (N,3) initial locations
-        dirs: (N,3) fixed directions (optional). When not given, the directions are
-            chosen to be the directions of gradient estimates.
+        dirs: (N,3) or (3,) fixed directions (optional). When not given, the directions are
+            chosen to be the directions of gradient estimates. When (3,) the same constant
+            direction for all locations is assumed.
         max_steps: max number of iterations
         eps: SDF value tolerance. locations within tolerance are excluded from
             further optimization.
@@ -47,6 +48,8 @@ def directional_newton_roots(
         g = node.gradient(x[mask])
         if dirs is None:
             d = g / np.linalg.norm(g, axis=-1, keepdims=True)
+        elif dirs.ndim == 1:
+            d = np.expand_dims(dirs, 0)
         else:
             d = dirs[mask]
         dot = (g[:, None, :] @ d[..., None]).squeeze(-1)

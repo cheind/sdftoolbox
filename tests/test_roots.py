@@ -25,6 +25,20 @@ def test_newton_root_finding():
     np.allclose(x, np.eye(3))
 
 
+def test_newton_single_dir():
+    np.random.seed(123)
+    s = Sphere()
+    x0 = np.random.randn(100, 3) * 1e-2
+    x = directional_newton_roots(s, x0, dirs=np.array([1.0, 0.0, 0.0]))
+    # Starting from close to center they should fly off to ~ -1/1 in x.
+    assert np.allclose(np.linalg.norm(x, axis=-1), 1.0)
+    assert np.allclose(
+        np.abs(x[:, None, :] @ np.array([[1.0, 0.0, 0.0]])[..., None]).squeeze(-1),
+        1.0,
+        atol=1e-2,
+    )
+
+
 def test_bisect_root_finding():
     np.random.seed(123)
     s = Sphere()

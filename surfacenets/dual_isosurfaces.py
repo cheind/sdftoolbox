@@ -110,7 +110,7 @@ def dual_isosurface(
         t[~active] = np.nan
         # Compute the floating point grid coords of intersection
         active_t = t[active, None]
-        isect_coords = (1 - active_t) * sijk[active] + active_t * tijk[active]
+        isect_coords = sijk[active] + off[None, :] * active_t
 
         # We store the partial axis results in the global arrays in interleaved
         # fashion. We do this, to comply with np.unravel_index/np.ravel_multi_index

@@ -10,7 +10,7 @@ def extract(scene: sn.sdfs.SDF, grid: sn.Grid):
     verts, faces = sn.dual_isosurface(
         scene,
         grid,
-        strategy=sn.DualContouringVertexStrategy(),
+        vertex_strategy=sn.DualContouringVertexStrategy(),
         triangulate=False,
     )
     return verts, faces

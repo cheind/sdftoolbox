@@ -19,7 +19,7 @@ _logger = logging.getLogger("surfacenets")
 def dual_isosurface(
     node: "SDF",
     grid: "Grid",
-    strategy: "DualVertexStrategy" = None,
+    vertex_strategy: "DualVertexStrategy" = None,
     triangulate: bool = False,
 ):
     """A vectorized dual iso-surface extraction algorithm for signed distance fields.
@@ -34,8 +34,8 @@ def dual_isosurface(
         node: the root node of the SDF. If you already have discretized SDF values in
             grid like fashion, wrap them using sdfs.Discretized.
         grid: (I,J,K) spatial sampling locations
-        strategy: Defines how vertices are placed inside of voxels. Defaults to naive
-            surface nets.
+        vertex_strategy: Defines how vertices are placed inside of voxels. If not
+            specified defaults to naive SurfaceNets.
         triangulate: When true, returns triangles instead of quadliterals.
 
     Returns:
@@ -49,8 +49,8 @@ def dual_isosurface(
     """
     t0 = time.perf_counter()
     # Sanity checks
-    if strategy is None:
-        strategy = NaiveSurfaceNetVertexStrategy()
+    if vertex_strategy is None:
+        vertex_strategy = NaiveSurfaceNetVertexStrategy()
 
     # First, we pad the sample volume on each side with a single (nan) value to
     # avoid having to deal with most out-of-bounds issues.
@@ -146,7 +146,7 @@ def dual_isosurface(
     # For each active voxel, we need to find one vertex location. The
     # method todo that depennds on `vertex_placement_mode`. No matter which method
     # is selected, we expect the returned coordinates to be in voxel space.
-    grid_verts = strategy.find_vertex_locations(
+    grid_verts = vertex_strategy.find_vertex_locations(
         active_voxels, edges_isect_coords, node, grid
     )
 

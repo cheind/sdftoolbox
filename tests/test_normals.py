@@ -11,7 +11,7 @@ def test_plane_normals():
         verts, faces = sn.dual_isosurface(
             scene,
             grid,
-            strategy=sn.NaiveSurfaceNetVertexStrategy(),
+            vertex_strategy=sn.NaiveSurfaceNetVertexStrategy(),
             triangulate=False,
         )
         face_normals = sn.mesh.compute_face_normals(verts, faces)

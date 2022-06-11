@@ -39,7 +39,7 @@ def main():
     verts, faces = sn.dual_isosurface(
         scene,
         grid,
-        strategy=sn.NaiveSurfaceNetVertexStrategy(),
+        vertex_strategy=sn.NaiveSurfaceNetVertexStrategy(),
         triangulate=False,
     )
 

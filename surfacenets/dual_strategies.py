@@ -277,9 +277,7 @@ class NewtonEdgeStrategy(DualEdgeStrategy):
         x_data = grid.grid_to_data(x_grid)
 
         # Perform the optimization
-        x_data = directional_newton_roots(
-            node, x_data, edge_dir[None, :].repeat(len(x_data), 0)
-        )
+        x_data = directional_newton_roots(node, x_data, edge_dir)
         x_grid = grid.data_to_grid(x_data)
 
         # Compute updated results.

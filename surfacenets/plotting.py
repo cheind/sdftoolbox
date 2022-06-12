@@ -131,6 +131,7 @@ def plot_mesh(
     faces: np.ndarray,
     face_normals: np.ndarray = None,
     vertex_normals: np.ndarray = None,
+    alpha=1.0,
 ):
     """Add a mesh to the axis.
 
@@ -145,30 +146,16 @@ def plot_mesh(
     """
     # Better colors? https://matplotlib.org/stable/gallery/mplot3d/voxels_rgb.html
     # https://stackoverflow.com/questions/56864378/how-to-light-and-shade-a-poly3dcollection
-    mesh = Poly3DCollection(verts[faces], linewidth=0.2, zorder=1)
+    mesh = Poly3DCollection(verts[faces], linewidth=0.2, zorder=1, alpha=alpha)
     mesh.set_edgecolor("w")
     ax.add_collection3d(mesh)
 
-    def add_normals_plot(origins, dirs, color):
-        ax.quiver(
-            origins[:, 0],
-            origins[:, 1],
-            origins[:, 2],
-            dirs[:, 0],
-            dirs[:, 1],
-            dirs[:, 2],
-            length=0.1,
-            color=color,
-            linewidth=0.5,
-            zorder=2,
-        )
-
     if face_normals is not None:
         centers = verts[faces].mean(1)
-        add_normals_plot(centers, face_normals, "purple")
+        plot_normals(ax, centers, face_normals, "purple")
 
     if vertex_normals is not None:
-        add_normals_plot(verts, vertex_normals, "lime")
+        plot_normals(ax, verts, vertex_normals, "lime")
 
 
 def plot_samples(ax, xyz: np.ndarray, sdf_values: np.ndarray = None):
@@ -177,6 +164,21 @@ def plot_samples(ax, xyz: np.ndarray, sdf_values: np.ndarray = None):
         colors[sdf_values <= 0] = (1.0, 1.0, 0.0)
     ax.scatter(
         xyz[..., 0], xyz[..., 1], xyz[..., 2], s=2, c=colors.reshape(-1, 3), alpha=0.5
+    )
+
+
+def plot_normals(ax, origins: np.ndarray, dirs: np.ndarray, color: str = "k"):
+    ax.quiver(
+        origins[:, 0],
+        origins[:, 1],
+        origins[:, 2],
+        dirs[:, 0],
+        dirs[:, 1],
+        dirs[:, 2],
+        length=0.1,
+        color=color,
+        linewidth=0.5,
+        zorder=2,
     )
 
 

@@ -130,8 +130,8 @@ class DualContouringVertexStrategy(DualVertexStrategy):
                 point and `disable` never performs biasing. Defaults to always.
             bias_strength: Strength of bias compared to compatible normal terms.
             clip: Wether to clip the result to voxel or not. Note, when False relaxes
-                the assumption that only one vertex per cell should be created. In particular
-                useful when dealing with non-smooth SDFs.
+                the assumption that only one vertex per cell should be created. In
+                particular useful when dealing with non-smooth SDFs.
         """
         assert bias_mode in ["always", "failed", "disabled"]
         self.bias_strength = bias_strength

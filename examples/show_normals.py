@@ -3,8 +3,6 @@
 import matplotlib.pyplot as plt
 import surfacenets as sn
 
-import numpy as np
-
 
 def main():
 

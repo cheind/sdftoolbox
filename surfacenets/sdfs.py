@@ -81,14 +81,12 @@ class SDF(abc.ABC):
         return Difference([self] + list(others), alpha=alpha)
 
     def transform(
-        self, trans=(0.0, 0.0, 0.0), rot=(1.0, 0.0, 0.0, 0.0), scale: float = 1.0
+        self,
+        trans: tuple[float, float, float] = (0.0, 0.0, 0.0),
+        rot: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0),
+        scale: float = 1.0,
     ) -> "Transform":
-        t = (
-            maths.translate(trans)
-            @ maths.rotate(rot[:3], rot[-1])
-            @ maths.scale((scale, scale, scale))
-        )
-        return Transform(self, t)
+        return Transform(self, Transform.create_transform(trans, rot, scale))
 
 
 class Transform(SDF):
@@ -139,6 +137,27 @@ class Transform(SDF):
 
     def _to_local(self, x: np.ndarray) -> np.ndarray:
         return maths.dehom(maths.hom(x) @ self.t_local_world.T)
+
+    def transform(
+        self,
+        trans: tuple[float, float, float] = (0, 0, 0),
+        rot: tuple[float, float, float, float] = (1, 0, 0, 0),
+        scale: float = 1,
+    ) -> "Transform":
+        t = Transform.create_transform(trans, rot, scale)
+        self.t_world_local = t @ self.t_world_local
+        return self
+
+    @staticmethod
+    def create_transform(
+        trans=(0.0, 0.0, 0.0), rot=(1.0, 0.0, 0.0, 0.0), scale: float = 1.0
+    ) -> np.ndarray:
+        t = (
+            maths.translate(trans)
+            @ maths.rotate(rot[:3], rot[-1])
+            @ maths.scale((scale, scale, scale))
+        )
+        return t
 
 
 class Union(SDF):

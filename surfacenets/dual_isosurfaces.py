@@ -1,23 +1,26 @@
 import logging
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
+from dataclasses import dataclass
 
 import numpy as np
 
-from .dual_strategies import (
-    DualEdgeStrategy,
-    NaiveSurfaceNetVertexStrategy,
-    LinearEdgeStrategy,
-)
+from .dual_strategies import LinearEdgeStrategy, NaiveSurfaceNetVertexStrategy
 from .mesh import triangulate_quads
 
 if TYPE_CHECKING:
-    from .dual_strategies import DualVertexStrategy, DualEdgeStrategy
+    from .dual_strategies import DualEdgeStrategy, DualVertexStrategy
     from .grid import Grid
     from .sdfs import SDF
 
 
 _logger = logging.getLogger("surfacenets")
+
+
+@dataclass
+class DebugInfo:
+    edges_active_mask: np.ndarray
+    edges_isect_coords: np.ndarray
 
 
 def dual_isosurface(
@@ -26,7 +29,8 @@ def dual_isosurface(
     vertex_strategy: "DualVertexStrategy" = None,
     edge_strategy: "DualEdgeStrategy" = None,
     triangulate: bool = False,
-):
+    return_debug_info: bool = False,
+) -> Union[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray, DebugInfo]]:
     """A vectorized dual iso-surface extraction algorithm for signed distance fields.
 
     This implementation approximates the relaxation based vertex placement
@@ -42,11 +46,13 @@ def dual_isosurface(
         vertex_strategy: Defines how vertices are placed inside of voxels. If not
             specified defaults to naive SurfaceNets.
         triangulate: When true, returns triangles instead of quadliterals.
+        return_debug_info: Whether to return additional intermediate results
 
     Returns:
         verts: (N,3) array of vertices
         faces: (M,F) index array of faces into vertices. For quadliterals F is 4,
             otherwise 3.
+        debug: instance of DebugInfo when return_debug_info is True.
 
     References:
         Gibson, S. F. F. (1999). Constrained elastic surfacenets: Generating smooth
@@ -174,4 +180,8 @@ def dual_isosurface(
         )
     _logger.info(f"Finished after {time.perf_counter() - t0:.4f} secs")
     _logger.info(f"Found {len(verts)} vertices and {len(faces)} faces")
-    return verts, faces
+
+    if return_debug_info:
+        return verts, faces, DebugInfo(edges_active_mask, edges_isect_coords)
+    else:
+        return verts, faces

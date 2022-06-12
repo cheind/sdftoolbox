@@ -118,12 +118,26 @@ class DualContouringVertexStrategy(DualVertexStrategy):
     def __init__(
         self,
         bias_mode: Literal["always", "failed", "disabled"] = "always",
-        bias_strength: float = 1e-3,
+        bias_strength: float = 1e-5,
+        clip: bool = False,
     ):
+        """Initialize the strategy.
+
+        Params:
+            bias_mode: Determines how bias is applied. `always` applies
+                biasing towards naive surface net solution unconditionally. `failed`
+                applies biasing only after solving without bias results in an invalid
+                point and `disable` never performs biasing. Defaults to always.
+            bias_strength: Strength of bias compared to compatible normal terms.
+            clip: Wether to clip the result to voxel or not. Note, when False relaxes
+                the assumption that only one vertex per cell should be created. In particular
+                useful when dealing with non-smooth SDFs.
+        """
         assert bias_mode in ["always", "failed", "disabled"]
         self.bias_strength = bias_strength
         self.sqrt_bias_strength = np.sqrt(self.bias_strength)
         self.bias_mode = bias_mode
+        self.clip = clip
 
     def find_vertex_locations(
         self,
@@ -158,7 +172,8 @@ class DualContouringVertexStrategy(DualVertexStrategy):
             )
             if bias_failed and ((x < 0.0).any() or (x > 1.0).any()):
                 x = self._solve_lst(q[mask], n[mask], bias=(bias - off))
-            x = np.clip(x, 0.0, 1.0)
+            if self.clip:
+                x = np.clip(x, 0.0, 1.0)
             verts.append(x + off)
         return np.array(verts, dtype=float_dtype)
 

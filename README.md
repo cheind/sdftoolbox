@@ -15,10 +15,14 @@ See [examples/compare.py](examples/compare.py) for details.
 ## Features
 
 -   A generic blueprint algorithm for dual iso-surface generation from SDFs
-    -   with implementations of
+    -   providing the following vertex placement strategies
         -   (Naive) SurfaceNets
         -   Dual Contouring
         -   Midpoint to generate Minecraft like reconstructions
+    -   providing the following edge/surface boundary intersection strategies
+        -   Linear (single step)
+        -   Newton (iterative)
+        -   Bisection (iterative)
     -   Quad/Triangle topology support
     -   Vertex/Face normal support
 -   Tools for programmatically creating and modifying SDFs

@@ -60,7 +60,7 @@ grid = sn.Grid(
     max_corner=(1.5, 1.5, 1.5),
 )
 
-# Extract the surface using dual contouring
+# Extract the surface
 verts, faces = sn.dual_isosurface(
     scene,
     grid,

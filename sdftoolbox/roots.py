@@ -53,8 +53,11 @@ def directional_newton_roots(
         else:
             d = dirs[mask]
         dot = (g[:, None, :] @ d[..., None]).squeeze(-1)
-        scaled_dir = (y[mask, None] / dot) * d
-        x[mask] = x[mask] - scaled_dir
+        noinfo = dot == 0.0  # gradient is orthogonal to direction
+        with np.errstate(divide="ignore", invalid="ignore"):
+            scale = y[mask, None] / dot
+            scale[noinfo] = 0
+        x[mask] = x[mask] - scale * d
     return x
 
 

@@ -86,11 +86,12 @@ The bisection method is useful when a) linearity is not given, b) you have acces
 
 #### Edge strategies evaluation
 
-Here is a plot to compare the edge strategies on a cross section of a sphere.
+Here is a diagram comparing the edge strategies on a spherical cross-section.
 
 <div align=center>
       <img src="edge_strategies_sphere.svg" width="95%">
       <figcaption>Comparison of different edge intersection strategies on the cross section of an analytic sphere SDF. Each plot shows the same two edges and marks the intersection point (red circle) as determined by the respective method.</figcaption>
+      <br>
 </div>
 
 One notices, that for the linear estimator only the smaller edge seems to yield an accurate fit. For the larger edge, the main assumptions of the linear method break and hence the estimated root is off. Newtons method as well as the bisection method do not expose this issue at the cost of additional computational steps.
@@ -100,6 +101,7 @@ Below is a similar plot for the cross section of a box
 <div align=center>
       <img src="edge_strategies_box.svg" width="95%">
       <figcaption>Comparison of different edge intersection strategies on the cross section of an analytic sphere SDF. Each plot shows the same two edges and marks the intersection point (red circle) as determined by the respective method.</figcaption>
+      <br>
 </div>
 
 The linear method fails for both edges because its main assumptions are violated. For Newton's method, the intersection for only one of the edges is computed corrected. The other edge fails, since the gradient is orthogonal to the edge direction (no information along the edge dir). Only the bisection method is capable for producing an accurate result in these cases.

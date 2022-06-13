@@ -136,7 +136,6 @@ class DualContouringVertexStrategy(DualVertexStrategy):
         self.bias_strength = bias_strength
         self.sqrt_bias_strength = np.sqrt(self.bias_strength)
         self.bias_mode = bias_mode
-        self.clip = clip
 
     def find_vertex_locations(
         self,

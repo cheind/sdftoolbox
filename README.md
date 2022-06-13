@@ -8,7 +8,7 @@ This repository provides vectorized Python methods for creating, manipulating an
 
 The image above shows two reconstructions of a sphere displaced by waves. The reconstruction on the left uses (dual) SurfaceNets from this library, the right side shows the result of applying (primal) Marching Cubes algorithm from scikit-image.
 
-See [examples/compare.py](examples/compare.py) for details.
+See [examples/compare.py](examples/compare.py) for details and [doc/SDF.md](doc/SDF.md) for an in-depth documentation.
 
 ## Features
 

@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose
-from surfacenets import Grid
-from surfacenets.utils import reorient_volume
+from sdftoolbox import Grid
+from sdftoolbox.utils import reorient_volume
 
 
 def test_correct_shapes():

@@ -1,21 +1,23 @@
 import numpy as np
-import surfacenets as sn
+import sdftoolbox
 
 
 def test_plane_normals():
     def gen_normals(n: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        scene = sn.sdfs.Plane.create((0.01, 0.01, 0.01), normal=n)
-        grid = sn.Grid(res=(3, 3, 3))
+        scene = sdftoolbox.sdfs.Plane.create((0.01, 0.01, 0.01), normal=n)
+        grid = sdftoolbox.Grid(res=(3, 3, 3))
 
         # Extract the surface using quadliterals
-        verts, faces = sn.dual_isosurface(
+        verts, faces = sdftoolbox.dual_isosurface(
             scene,
             grid,
-            vertex_strategy=sn.NaiveSurfaceNetVertexStrategy(),
+            vertex_strategy=sdftoolbox.NaiveSurfaceNetVertexStrategy(),
             triangulate=False,
         )
-        face_normals = sn.mesh.compute_face_normals(verts, faces)
-        vert_normals = sn.mesh.compute_vertex_normals(verts, faces, face_normals)
+        face_normals = sdftoolbox.mesh.compute_face_normals(verts, faces)
+        vert_normals = sdftoolbox.mesh.compute_vertex_normals(
+            verts, faces, face_normals
+        )
         return face_normals, vert_normals
 
     for n in np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]):

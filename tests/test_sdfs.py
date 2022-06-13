@@ -1,31 +1,31 @@
 import numpy as np
-import surfacenets as sn
+import sdftoolbox
 import pytest
 
 
 def test_anisotropic_scaling_not_supported():
-    scene = sn.sdfs.Sphere.create(radius=2)
+    scene = sdftoolbox.sdfs.Sphere.create(radius=2)
 
     with pytest.raises(ValueError):
         scene.t_world_local = np.diag([1.0, 2.0, 3.0])
 
 
 def test_sphere():
-    scene = sn.sdfs.Sphere.create(radius=2)
+    scene = sdftoolbox.sdfs.Sphere.create(radius=2)
 
     sdfv = scene.sample(np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]]))
     assert np.allclose(sdfv, [-2.0, -1.0, 0.0])
 
 
 def test_plane():
-    scene = sn.sdfs.Plane.create(origin=(1.0, 1.0, 1.0), normal=(1.0, 0.0, 0.0))
+    scene = sdftoolbox.sdfs.Plane.create(origin=(1.0, 1.0, 1.0), normal=(1.0, 0.0, 0.0))
 
     sdfv = scene.sample(np.array([[0.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [1.0, 0.0, 0.0]]))
     assert np.allclose(sdfv, [-1.0, -2.0, 0.0], atol=1e-5)
 
 
 def test_box():
-    scene = sn.sdfs.Box((1, 1, 1))
+    scene = sdftoolbox.sdfs.Box((1, 1, 1))
 
     sdfv = scene.sample(
         np.array(
@@ -41,7 +41,7 @@ def test_box():
     )
     assert np.allclose(sdfv, [-0.5, 0.0, 0.5, 0.0, 0.0, 0.8660254], atol=1e-3)
 
-    scene = sn.sdfs.Box((1.1, 1.1, 1.1))
+    scene = sdftoolbox.sdfs.Box((1.1, 1.1, 1.1))
     sdfv = scene.sample(
         np.array(
             [
@@ -52,8 +52,10 @@ def test_box():
     )
     assert np.allclose(sdfv, [0.45, -0.216666667], atol=1e-3)
 
-    scene = sn.sdfs.Box((1.1, 1.1, 1.1))
-    scene = sn.sdfs.Transform(scene, sn.maths.rotate([1, 0, 0], np.pi / 4))
+    scene = sdftoolbox.sdfs.Box((1.1, 1.1, 1.1))
+    scene = sdftoolbox.sdfs.Transform(
+        scene, sdftoolbox.maths.rotate([1, 0, 0], np.pi / 4)
+    )
     sdfv = scene.sample(
         np.array(
             [
@@ -66,8 +68,10 @@ def test_box():
 
 
 def test_root():
-    scene = sn.sdfs.Box((1.1, 1.1, 1.1))
-    scene = sn.sdfs.Transform(scene, sn.maths.rotate([1, 0, 0], np.pi / 4))
+    scene = sdftoolbox.sdfs.Box((1.1, 1.1, 1.1))
+    scene = sdftoolbox.sdfs.Transform(
+        scene, sdftoolbox.maths.rotate([1, 0, 0], np.pi / 4)
+    )
     xyz = np.array(
         [
             [-1.0, -0.333333333333, -0.333333333333],
@@ -83,7 +87,7 @@ def test_root():
 
 
 def test_gradients():
-    scene = sn.sdfs.Sphere.create(radius=1)
+    scene = sdftoolbox.sdfs.Sphere.create(radius=1)
 
     def analytic(x):
         return x / np.linalg.norm(x, axis=-1, keepdims=True)
@@ -103,20 +107,20 @@ def test_gradients():
 
 
 def test_discretized():
-    scene = sn.sdfs.Sphere.create(radius=1)
-    grid = sn.Grid(res=(20, 20, 20))
+    scene = sdftoolbox.sdfs.Sphere.create(radius=1)
+    grid = sdftoolbox.Grid(res=(20, 20, 20))
     sdf_scene = scene.sample(grid.xyz)
-    disc = sn.sdfs.Discretized(grid, sdf_scene)
+    disc = sdftoolbox.sdfs.Discretized(grid, sdf_scene)
     sdf_disc = disc.sample(grid.xyz)
     assert np.allclose(sdf_scene, sdf_disc)
 
     # Shift coords test
-    scene = sn.sdfs.Plane.create()
-    grid = sn.Grid(res=(3, 3, 3), min_corner=(-1, -1, -1), max_corner=(1, 1, 1))
+    scene = sdftoolbox.sdfs.Plane.create()
+    grid = sdftoolbox.Grid(res=(3, 3, 3), min_corner=(-1, -1, -1), max_corner=(1, 1, 1))
     sdf_scene = scene.sample(grid.xyz)
-    disc = sn.sdfs.Discretized(grid, sdf_scene)
+    disc = sdftoolbox.sdfs.Discretized(grid, sdf_scene)
 
-    from surfacenets.utils import reorient_volume
+    from sdftoolbox.utils import reorient_volume
 
     sdf_disc = reorient_volume(disc.sample(grid.xyz + (0.0, 0.0, 0.5)))
     assert np.allclose(sdf_disc[0], -0.5)

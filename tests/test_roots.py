@@ -1,6 +1,6 @@
 import numpy as np
-from surfacenets.sdfs import Box, Sphere
-from surfacenets.roots import directional_newton_roots, bisect_roots
+from sdftoolbox.sdfs import Box, Sphere
+from sdftoolbox.roots import directional_newton_roots, bisect_roots
 
 
 def test_newton_root_finding():

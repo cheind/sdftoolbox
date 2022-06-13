@@ -297,6 +297,14 @@ class NewtonEdgeStrategy(DualEdgeStrategy):
 
 
 class BisectionEdgeStrategy(DualEdgeStrategy):
+    """Determine edge intersections by bisection root finding.
+
+    If the assumptions of LinearEdgeStrategy do not hold and
+    the gradient in the direction of the edge does not contain
+    information, this method can be used to determine a more
+    accurate intersection point.
+    """
+
     def __init__(
         self,
         max_steps: int = 10,

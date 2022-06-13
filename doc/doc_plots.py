@@ -3,6 +3,7 @@ import matplotlib.colors
 import numpy as np
 
 import sdftoolbox
+from sdftoolbox.roots import directional_newton_roots, bisect_roots
 
 
 def plot_frames():
@@ -89,7 +90,105 @@ def plot_edges():
     plt.close(fig)
 
 
+def plot_edge_strategies():
+    def compute_linear_isect(node, edge):
+        edge_sdf = node.sample(edge)
+        tlin = sdftoolbox.LinearEdgeStrategy.compute_linear_roots(
+            edge_sdf[0:1], edge_sdf[1:2]
+        ).squeeze()
+        xlin = (1 - tlin) * edge[0] + tlin * edge[1]
+        return xlin
+
+    def compute_newton_isect(node, edge):
+        dir = edge[1] - edge[0]
+        dir = dir / np.linalg.norm(dir)
+        x = compute_linear_isect(node, edge)
+        x = directional_newton_roots(node, x[None, :], dir[None, :])
+        return x.squeeze()
+
+    def compute_bisect_isect(node, edge):
+        x = compute_linear_isect(node, edge)
+        x = bisect_roots(node, edge[0:1], edge[1:2], x[None, :], max_steps=20)
+        return x.squeeze()
+
+    def plot_edge(ax, edge, isect):
+        ax.plot(edge[:, 0], edge[:, 1], color="k", linewidth=0.5)
+        ax.scatter(edge[:, 0], edge[:, 1], color="k", s=20, zorder=3)
+        ax.scatter(
+            isect[0],
+            isect[1],
+            s=20,
+            marker="o",
+            zorder=3,
+            facecolors="none",
+            edgecolors="r",
+        )
+
+    # Sphere
+    fig, axs = plt.subplots(1, 3, figsize=plt.figaspect(0.3333))
+    sphere = sdftoolbox.sdfs.Sphere.create(radius=1.0)
+    sphere_grid = sdftoolbox.sdfs.Grid(
+        (100, 100, 1), min_corner=(0.0, 0.0, 0.0), max_corner=(1.1, 1.1, 0.0)
+    )
+    xyz = sphere_grid.xyz
+    sdf = sphere.sample(xyz)
+
+    edge1 = np.array([[0.622, 0.674, 0], [0.810, 0.753, 0]])
+    edge2 = np.array([[0.5, 0.2, 0], [0.5, 0.995, 0]])
+
+    cs = axs[0].contour(xyz[..., 0, 0], xyz[..., 0, 1], sdf[..., 0])
+    axs[0].clabel(cs, inline=True, fontsize=10)
+    cs = axs[1].contour(xyz[..., 0, 0], xyz[..., 0, 1], sdf[..., 0])
+    axs[1].clabel(cs, inline=True, fontsize=10)
+    cs = axs[2].contour(xyz[..., 0, 0], xyz[..., 0, 1], sdf[..., 0])
+    axs[2].clabel(cs, inline=True, fontsize=10)
+    axs[0].set_title("Linear")
+    axs[1].set_title("Directional Newton")
+    axs[2].set_title("Bisection")
+    plot_edge(axs[0], edge1, compute_linear_isect(sphere, edge1))
+    plot_edge(axs[0], edge2, compute_linear_isect(sphere, edge2))
+    plot_edge(axs[1], edge1, compute_newton_isect(sphere, edge1))
+    plot_edge(axs[1], edge2, compute_newton_isect(sphere, edge2))
+    plot_edge(axs[2], edge1, compute_bisect_isect(sphere, edge1))
+    plot_edge(axs[2], edge2, compute_bisect_isect(sphere, edge2))
+    plt.tight_layout()
+    fig.savefig("doc/edge_strategies_sphere.svg")
+    plt.close(fig)
+
+    # Box
+    fig, axs = plt.subplots(1, 3, figsize=plt.figaspect(0.3333))
+    box = sdftoolbox.sdfs.Box()
+    box_grid = sdftoolbox.sdfs.Grid(
+        (100, 100, 1), min_corner=(0.0, 0.0, 0.0), max_corner=(1.1, 1.1, 0.0)
+    )
+    xyz = box_grid.xyz
+    sdf = box.sample(xyz)
+
+    edge1 = np.array([[0.448, 0.039, 0], [0.448, 0.649, 0]])
+    edge2 = np.array([[0.283, 0.259, 0], [0.866, 0.757, 0]])
+
+    cs = axs[0].contour(xyz[..., 0, 0], xyz[..., 0, 1], sdf[..., 0])
+    axs[0].clabel(cs, inline=True, fontsize=10)
+    cs = axs[1].contour(xyz[..., 0, 0], xyz[..., 0, 1], sdf[..., 0])
+    axs[1].clabel(cs, inline=True, fontsize=10)
+    cs = axs[2].contour(xyz[..., 0, 0], xyz[..., 0, 1], sdf[..., 0])
+    axs[2].clabel(cs, inline=True, fontsize=10)
+    axs[0].set_title("Linear")
+    axs[1].set_title("Directional Newton")
+    axs[2].set_title("Bisection")
+    plot_edge(axs[0], edge1, compute_linear_isect(box, edge1))
+    plot_edge(axs[0], edge2, compute_linear_isect(box, edge2))
+    plot_edge(axs[1], edge1, compute_newton_isect(box, edge1))
+    plot_edge(axs[1], edge2, compute_newton_isect(box, edge2))
+    plot_edge(axs[2], edge1, compute_bisect_isect(box, edge1))
+    plot_edge(axs[2], edge2, compute_bisect_isect(box, edge2))
+    plt.tight_layout()
+    fig.savefig("doc/edge_strategies_box.svg")
+    plt.close(fig)
+
+
 if __name__ == "__main__":
 
     plot_frames()
     plot_edges()
+    plot_edge_strategies()

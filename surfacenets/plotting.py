@@ -5,7 +5,7 @@ from typing import Literal
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
@@ -131,7 +131,7 @@ def plot_mesh(
     faces: np.ndarray,
     face_normals: np.ndarray = None,
     vertex_normals: np.ndarray = None,
-    alpha=1.0,
+    **kwargs,
 ):
     """Add a mesh to the axis.
 
@@ -146,7 +146,7 @@ def plot_mesh(
     """
     # Better colors? https://matplotlib.org/stable/gallery/mplot3d/voxels_rgb.html
     # https://stackoverflow.com/questions/56864378/how-to-light-and-shade-a-poly3dcollection
-    mesh = Poly3DCollection(verts[faces], linewidth=0.2, zorder=1, alpha=alpha)
+    mesh = Poly3DCollection(verts[faces], linewidth=0.2, zorder=1, **kwargs)
     mesh.set_edgecolor("w")
     ax.add_collection3d(mesh)
 
@@ -180,6 +180,12 @@ def plot_normals(ax, origins: np.ndarray, dirs: np.ndarray, color: str = "k"):
         linewidth=0.5,
         zorder=2,
     )
+
+
+def plot_edges(ax, src, dst, **kwargs):
+    lines = np.stack((src, dst), 1)
+    art = Line3DCollection(lines, **kwargs)
+    ax.add_collection3d(art)
 
 
 def create_mesh_figure(

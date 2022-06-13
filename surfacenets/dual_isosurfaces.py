@@ -30,6 +30,7 @@ def dual_isosurface(
     edge_strategy: "DualEdgeStrategy" = None,
     triangulate: bool = False,
     return_debug_info: bool = False,
+    vertex_relaxation_percent: float = 0.25,
 ) -> Union[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray, DebugInfo]]:
     """A vectorized dual iso-surface extraction algorithm for signed distance fields.
 
@@ -46,7 +47,12 @@ def dual_isosurface(
         vertex_strategy: Defines how vertices are placed inside of voxels. If not
             specified defaults to naive SurfaceNets.
         triangulate: When true, returns triangles instead of quadliterals.
+        vertex_relaxation_percent: Edge intersection values outside of [0,1) will
+            be tolerated up to this percentage. Increasing this value allows for
+            more accurate shapes when the resolution of the grid is low and multiple
+            vertices per cell are required.
         return_debug_info: Whether to return additional intermediate results
+
 
     Returns:
         verts: (N,3) array of vertices
@@ -104,25 +110,36 @@ def dual_isosurface(
         tijk = sijk + off[None, :]
         ti, tj, tk = tijk.T
         sdf_dst = padded_sdf_values[ti, tj, tk]
-        sdf_diff = sdf_dst - sdf_src
+
+        # By intermediate value theorem for continuous functions if the sign of src
+        # and dst is different, there must be a root enclosed. We also avoid edges
+        # with NaNs, that might occur at boundaries as induced by potential SDF padding.
+        src_sign = np.sign(sdf_src)
+        dst_sign = np.sign(sdf_dst)
+        active = np.logical_and(src_sign != dst_sign, np.isfinite(sdf_dst))
 
         # Just like in MC, we compute a parametric value t for each edge that
         # tells use where the surface boundary intersects the edge.
         t = edge_strategy.find_edge_intersections(
-            sijk, sdf_src, tijk, sdf_dst, aidx, off, node, grid
+            sijk[active],
+            sdf_src[active],
+            tijk[active],
+            sdf_dst[active],
+            aidx,
+            off,
+            node,
+            grid,
         )
-        # Values within [0,1) correspond to active edge intersections.
-        active = np.logical_and(t >= 0, t < 1.0)  # t==1 is t==0 for next edge
-        t[~active] = np.nan
+        t = np.clip(t, 0.0 - vertex_relaxation_percent, 1.0 + vertex_relaxation_percent)
         # Compute the floating point grid coords of intersection
-        active_t = t[active, None]
-        isect_coords = sijk[active] + off[None, :] * active_t
+        isect_coords = sijk[active] + off[None, :] * t[:, None]
+        need_flip = (sdf_dst[active] - sdf_src[active]) < 0.0
 
         # We store the partial axis results in the global arrays in interleaved
         # fashion. We do this, to comply with np.unravel_index/np.ravel_multi_index
         # that are used internally by the grid module.
         edges_active_mask[aidx::3] = active
-        edges_flip_mask[aidx::3][active] = sdf_diff[active] < 0.0
+        edges_flip_mask[aidx::3][active] = need_flip
         edges_isect_coords[aidx::3][active] = isect_coords
 
     _logger.debug(f"After active edges; elapsed {time.perf_counter() - t0:.4f} secs")

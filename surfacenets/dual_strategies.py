@@ -1,3 +1,4 @@
+from black import Line
 import numpy as np
 import abc
 from typing import Literal, Optional, TYPE_CHECKING
@@ -201,8 +202,10 @@ class DualEdgeStrategy(abc.ABC):
 
     Each strategy is supposed to compute a scalar `t` for each
     edge in question that marks the point of intersection along
-    the edge. For active edges t is in [0,1), for non-active edges
-    outside of this range.
+    the edge. The method will be called only for active edges.
+    The returned value `t` is supposed to be in [0,1), however
+    value outside the range might be excepted as well when relaxed
+    edge intersections are enabled at the contouring algorithm.
     """
 
     @abc.abstractmethod
@@ -213,30 +216,11 @@ class DualEdgeStrategy(abc.ABC):
         dst_ijk: np.ndarray,
         dst_sdf: np.ndarray,
         edge_dir_index: int,
-        edge_dir: int,
+        edge_dir: np.ndarray,
         node: "SDF",
         grid: "Grid",
     ) -> np.ndarray:
         pass
-
-    @staticmethod
-    def find_active_edge_mask(src_sdf: np.ndarray, dst_sdf: np.ndarray) -> np.ndarray:
-        """Find the active edges.
-
-        By intermediate value theorem for continuous functions if the sign of src
-        and dst is different, there must be a root enclosed. We also avoid edges
-        with NaNs, that might occur at boundaries as induced by potential SDF padding.
-
-        Params:
-            src_sdf: (...,N) SDF values at first endpoint
-            dst_sdf (...,N) SDF values at second endpoint
-
-        Returns:
-            mask: (...,N) active edge mask
-        """
-        src_sign = np.sign(src_sdf)
-        dst_sign = np.sign(dst_sdf)
-        return np.logical_and(src_sign != dst_sign, np.isfinite(dst_sdf))
 
 
 class LinearEdgeStrategy(DualEdgeStrategy):
@@ -266,11 +250,7 @@ class LinearEdgeStrategy(DualEdgeStrategy):
         grid: "Grid",
     ) -> np.ndarray:
         del src_ijk, dst_ijk, edge_dir, node, grid, edge_dir_index
-        t = np.full_like(src_sdf, -1.0)
-        delta = dst_sdf - src_sdf
-        mask = delta != 0.0
-        t[mask] = -src_sdf[mask] / delta[mask]
-        return t
+        return LinearEdgeStrategy.compute_linear_roots(src_sdf, dst_sdf)
 
     @staticmethod
     def compute_linear_roots(src_sdf: np.ndarray, dst_sdf: np.ndarray) -> np.ndarray:
@@ -303,13 +283,10 @@ class NewtonEdgeStrategy(DualEdgeStrategy):
         grid: "Grid",
     ) -> np.ndarray:
         del dst_ijk
-        t = np.full_like(src_sdf, -1.0)
-
-        mask = DualEdgeStrategy.find_active_edge_mask(src_sdf, dst_sdf)
 
         # We use linearly interpolated start points
-        tlinear = LinearEdgeStrategy.compute_linear_roots(src_sdf[mask], dst_sdf[mask])
-        x_grid = src_ijk[mask] + edge_dir[None, :] * tlinear[:, None]
+        tlinear = LinearEdgeStrategy.compute_linear_roots(src_sdf, dst_sdf)
+        x_grid = src_ijk + edge_dir[None, :] * tlinear[:, None]
         x_data = grid.grid_to_data(x_grid)
 
         # Perform the optimization
@@ -319,9 +296,7 @@ class NewtonEdgeStrategy(DualEdgeStrategy):
         x_grid = grid.data_to_grid(x_data)
 
         # Compute updated results.
-        t[mask] = (x_grid - src_ijk[mask])[:, edge_dir_index]
-        t[mask] = np.clip(t[mask], 0, 1.0)
-
+        t = (x_grid - src_ijk)[:, edge_dir_index]
         return t
 
 
@@ -348,19 +323,16 @@ class BisectionEdgeStrategy(DualEdgeStrategy):
         grid: "Grid",
     ) -> np.ndarray:
 
-        t = np.full_like(src_sdf, -1.0)
-        mask = DualEdgeStrategy.find_active_edge_mask(src_sdf, dst_sdf)
-
         # We use linearly interpolated start points
-        tlinear = LinearEdgeStrategy.compute_linear_roots(src_sdf[mask], dst_sdf[mask])
-        x_grid = src_ijk[mask] + edge_dir[None, :] * tlinear[:, None]
+        tlinear = LinearEdgeStrategy.compute_linear_roots(src_sdf, dst_sdf)
+        x_grid = src_ijk + edge_dir[None, :] * tlinear[:, None]
         x_data0 = grid.grid_to_data(x_grid)
 
         # Perform the optimization
         x_data = bisect_roots(
             node,
-            grid.grid_to_data(src_ijk[mask]),
-            grid.grid_to_data(dst_ijk[mask]),
+            grid.grid_to_data(src_ijk),
+            grid.grid_to_data(dst_ijk),
             x_data0,
             max_steps=self.max_steps,
             eps=self.eps,
@@ -369,7 +341,6 @@ class BisectionEdgeStrategy(DualEdgeStrategy):
         x_grid = grid.data_to_grid(x_data)
 
         # Compute updated results.
-        t[mask] = (x_grid - src_ijk[mask])[:, edge_dir_index]
-        t[mask] = np.clip(t[mask], 0, 1.0)
+        t = (x_grid - src_ijk)[:, edge_dir_index]
 
         return t

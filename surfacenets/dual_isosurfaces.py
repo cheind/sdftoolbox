@@ -26,8 +26,8 @@ class DebugInfo:
 def dual_isosurface(
     node: "SDF",
     grid: "Grid",
-    vertex_strategy: "DualVertexStrategy" = None,
     edge_strategy: "DualEdgeStrategy" = None,
+    vertex_strategy: "DualVertexStrategy" = None,
     triangulate: bool = False,
     return_debug_info: bool = False,
     vertex_relaxation_percent: float = 0.1,
@@ -44,8 +44,10 @@ def dual_isosurface(
         node: the root node of the SDF. If you already have discretized SDF values in
             grid like fashion, wrap them using sdfs.Discretized.
         grid: (I,J,K) spatial sampling locations
+        edge_strategy: Defines how edge/surface boundary intersection are determined.
+            If not specified defaults to LinearEdgeStrategy.
         vertex_strategy: Defines how vertices are placed inside of voxels. If not
-            specified defaults to naive SurfaceNets.
+            specified defaults to NaiveSurfaceNetVertexStrategy.
         triangulate: When true, returns triangles instead of quadliterals.
         vertex_relaxation_percent: Edge intersection values outside of [0,1) will
             be tolerated up to this percentage. Increasing this value allows for

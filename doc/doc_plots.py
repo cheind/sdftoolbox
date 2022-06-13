@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors
 import numpy as np
 
-import surfacenets as sn
+import sdftoolbox
 
 
 def plot_frames():
-    fig, ax = sn.plotting.create_figure("ortho")
+    fig, ax = sdftoolbox.plotting.create_figure("ortho")
 
     ijk = np.stack(np.meshgrid(range(3), range(3), range(3), indexing="ij"), -1)
     colors = np.ones((3, 3, 3, 4))
@@ -56,7 +56,7 @@ def plot_frames():
 
     ax.quiver(0, 0, 0, 0, 0, 1, length=1.0, arrow_length_ratio=0.1, color="blue")
     ax.text(0.05, 0.0, 0.7, "k", color="k")
-    sn.plotting.setup_axes(
+    sdftoolbox.plotting.setup_axes(
         ax, (-0.5, -0.5, -0.5), (2.5, 2.5, 2.5), azimuth=-121, elevation=32
     )
     plt.tight_layout()
@@ -65,7 +65,7 @@ def plot_frames():
 
 
 def plot_edges():
-    fig, ax = sn.plotting.create_figure("ortho")
+    fig, ax = sdftoolbox.plotting.create_figure("ortho")
 
     ijk = np.stack(np.meshgrid(range(3), range(3), range(3), indexing="ij"), -1)
 
@@ -80,7 +80,7 @@ def plot_edges():
     ax.quiver(2, 0, 2, 0, 1, 0, length=1.0, arrow_length_ratio=0.1, color="purple")
     ax.text(2, 0.5, 2.1, "(2,0,2,1)", color="k")
 
-    sn.plotting.setup_axes(
+    sdftoolbox.plotting.setup_axes(
         ax, (-0.5, -0.5, -0.5), (2.5, 2.5, 2.5), azimuth=-110, elevation=38
     )
     plt.legend()

@@ -43,7 +43,7 @@ We index edges by its source voxel index plus a label `e` $\in \{0,1,2\}$ that d
 
 Having three (forward) edges per voxel index allows us to easily enumerate all edges without duplicates and without missing any edges. Note, at the outer positive border faces we get a set of invalid edges (for example `(2,0,2,0)` is invalid, while `(2,0,2,1)` is valid).
 
-## Dual Isosurface Extraction
+## Dual isosurface extraction
 
 This library implements a generic dual isosurface extraction method based. This blueprint allows the user to set different behavioral aspects to implement varios approaches (or hybrids thereof) proposed in literature.
 

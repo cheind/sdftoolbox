@@ -105,7 +105,7 @@ Shown below, is a similar plot for the cross section of a box.
 </div>
 <br>
 
-The linear method fails for both edges because its main assumptions are violated. For Newton's method, the intersection for only one of the edges is computed corrected. The other edge fails, since the gradient is orthogonal to the edge direction (no information along the edge dir). Only the bisection method is capable for producing an accurate result in these cases.
+The linear method fails for both edges because its main assumptions are violated. For Newton's method, the intersection for only one of the edges is computed correctly. No intersection is found for the other edge, since the gradient is orthogonal to the edge direction (no information along the edge dir). Only the bisection method is capable for producing an accurate result for both cases.
 
 ### Vertex strategies
 

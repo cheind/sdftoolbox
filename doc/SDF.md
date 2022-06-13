@@ -101,7 +101,7 @@ Shown below, is a similar plot for the cross section of a box.
 
 <div align=center>
       <img src="edge_strategies_box.svg" width="95%">
-      <figcaption>Comparison of different edge intersection strategies on the cross section of an analytic sphere SDF. Each plot shows the same two edges and marks the intersection point (red circle) as determined by the respective method.</figcaption>  
+      <figcaption>Comparison of different edge intersection strategies on the cross section of an analytic box SDF. Each plot shows the same two edges and marks the intersection point (red circle) as determined by the respective method.</figcaption>  
 </div>
 <br>
 

@@ -1,4 +1,3 @@
-from black import Line
 import numpy as np
 import abc
 from typing import Literal, Optional, TYPE_CHECKING
@@ -120,7 +119,6 @@ class DualContouringVertexStrategy(DualVertexStrategy):
         self,
         bias_mode: Literal["always", "failed", "disabled"] = "always",
         bias_strength: float = 1e-5,
-        clip: bool = False,
     ):
         """Initialize the strategy.
 
@@ -173,8 +171,6 @@ class DualContouringVertexStrategy(DualVertexStrategy):
             )
             if bias_failed and ((x < 0.0).any() or (x > 1.0).any()):
                 x = self._solve_lst(q[mask], n[mask], bias=(bias - off))
-            if self.clip:
-                x = np.clip(x, 0.0, 1.0)
             verts.append(x + off)
         return np.array(verts, dtype=float_dtype)
 

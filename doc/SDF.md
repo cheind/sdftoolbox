@@ -20,7 +20,7 @@ For many primitive shapes in $\mathbb{R}^3$ analytic SDF representations are kno
 
 ## Isosurface extraction
 
-Iso-surface extraction is the task of finding a suitable tesselation of the boundary (or any constant offset value) of a SDF. The methods considered in this library rely a regular SDF sampling volume from which the resulting mesh is generated. The two schemes that dominate the iso-surface extraction field differ in the way they generate the tesselated topology. The following table lists the differences:
+Isosurface extraction is the task of finding a suitable tesselation of the boundary (or any constant offset value) of a SDF. The methods considered in this library rely a regular SDF sampling volume from which the resulting mesh is generated. The two schemes that dominate the isosurface extraction field differ in the way they generate the tesselated topology. The following table lists the differences:
 
 | Method |  Edge  | Face | Voxel  |
 | :----: | :----: | :--: | :----: |
@@ -43,6 +43,47 @@ We index edges by its source voxel index plus a label `e` $\in \{0,1,2\}$ that d
 
 Having three (forward) edges per voxel index allows us to easily enumerate all edges without duplicates and without missing any edges. Note, at the outer positive border faces we get a set of invalid edges (for example `(2,0,2,0)` is invalid, while `(2,0,2,1)` is valid).
 
+## Dual Isosurface Extraction
+
+This library implements a generic dual isosurface extraction method based. This blueprint allows the user to set different behavioral aspects to implement varios approaches (or hybrids thereof) proposed in literature.
+
+Given a SDF and grid defining the sampling locations, the basic dual isosurface algorithm works as follows
+
+1.  Active edges: For each edge in the sampling grid, determine if it intersects the boundary of the SDF. We call those edges with intersections _active_ edges.
+1.  Edge intersection: For each active edge find the intersection point with the boundary of the surface along the edge.
+1.  Vertex placement: For each grid (active) voxel with at least one active edge, determine a single vertex location.
+1.  Face generation: For each active edge create a quadliteral connecting the vertices of the four active voxels sharing this active edge.
+
+See [[3]](#3),[[1]](#1) for more information.
+
+The library implements this recipe in vectorized form. That is, all steps of the algorithms are capable to work with multiple elements at once. This allows for a better resource usage and generally speeds up algorithmic runtime dramatically. It is also the reason that you will hardly find for-loops sprinkled all over the code.
+
+The recipe above gives raise to different behavioral aspects that are implemented as exchangable modules:
+
+-   _edge strategies_: determines how the intersection between an edge and the surface boundary as dictated by the SDF is found.
+-   _vertex strategies_: determines how the vertex from the voxel's active edges is computed.
+
+### Edge strategies
+
+Edge strategies implement different methods to determine the edge/surface crossing. The following strategies are implemented
+
+#### Linear (single-step)
+
+This method determines the intersection by finding the root of a linear equation guided by the SDF values at the two edge endpoints. This is most commonly found method in literature. It makes the following two assumptions
+
+1. Surface Smoothness: the SDF is assumed to be smooth
+1. Small edges: the edge lengths are supposed to be small compared to size of the shape of the SDF
+
+Together, this two assumptions lead to linearity of the surface close to edges. Hence, modelling the surface boundary using a linear equation leads to accurate estimations. Also, in case you do not have access to analytic SDFs (e.g discretized volume of SDF values) it is the best you can do.
+
+#### Newton (iterative)
+
+If the assumptions of the linear strategy are wrong, this leads to misplaced intersections that affect the quality of the final mesh. If you happen to have access to an analytic SDF, you might do better: We drop the assumption of surface linearity and instead find the root of the SDF along the edge iteratively. One algorithm with quadric convergence is Newton's method (it requires access to the gradient of the SDF). For our usecase (vector valued scalar function) we need a variant of it, the so called directional Newton method.
+
+#### Bisection (iterative)
+
+The bisection method is useful when a) linearity is not given, b) you have access to an analytic SDF and c) the gradient does not convey information along the edge direction (e.g. for some points in the SDF of a box).
+
 ## References
 
 -   <a id="1">[1]</a>
@@ -50,3 +91,4 @@ Having three (forward) edges per voxel index allows us to easily enumerate all e
 -   <a id="2">[2]</a>
     Inigio Quilez's.
     https://iquilezles.org/articles/distfunctions/
+-   <a id="2">[3]</a> Gibson, Sarah FF. "Constrained elastic surface nets: Generating smooth surfaces from binary segmented data." International Conference on Medical Image Computing and Computer-Assisted Intervention. Springer, Berlin, Heidelberg, 1998.

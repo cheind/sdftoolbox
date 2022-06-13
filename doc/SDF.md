@@ -20,7 +20,7 @@ For many primitive shapes in $\mathbb{R}^3$ analytic SDF representations are kno
 
 ## Isosurface extraction
 
-Iso-surface extraction is the task of finding a suitable tesselation of the boundary (or any constant offset value) of a SDF. The methods considered in this library use a regular SDF sampling volume from which the resulting mesh is generated. The two schemes that dominate the iso-surface extraction field differ in the way they generate the tesselated topology. The following table lists the differences:
+Iso-surface extraction is the task of finding a suitable tesselation of the boundary (or any constant offset value) of a SDF. The methods considered in this library rely a regular SDF sampling volume from which the resulting mesh is generated. The two schemes that dominate the iso-surface extraction field differ in the way they generate the tesselated topology. The following table lists the differences:
 
 | Method |  Edge  | Face | Voxel  |
 | :----: | :----: | :--: | :----: |

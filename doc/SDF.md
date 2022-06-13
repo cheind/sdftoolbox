@@ -84,6 +84,25 @@ If the assumptions of the linear strategy are wrong, this leads to misplaced int
 
 The bisection method is useful when a) linearity is not given, b) you have access to an analytic SDF and c) the gradient does not convey information along the edge direction (e.g. for some points in the SDF of a box).
 
+### Vertex strategies
+
+These strategies determine the final vertex locations active voxels.
+
+#### Midpoint
+
+The simplest strategy that places the vertex in the center the voxel. The resulting meshes are Mincraft-like box worlds.
+
+#### (Naive) SurfaceNets
+
+Naive SurfaceNets [[1]](#1) determine the the voxel's vertex location as the centroid of all 12 active edge intersection points. This strategy works well in practice but has the following downsides: a) it cannot reproduce sharp features like corners (like primal Marching Cubes [[4]](#4)) and b) its prone to shrink the surface in regions of sharp
+features.
+
+#### Dual Contouring
+
+Dual Contouring [[5]](#5) attempts to restore sharp features by determining the vertex position as the point that has the maximum support from all active edges of the voxel. Consider the plane formed by an active edge intersection point $x_i$ and its associated normal $n_i$. Any vertex location that is on that plane is compatible with it. In general, more than one plane is active for each voxel and point of maximum support is the one that lies on all the planes. This gives raise to a system of linear equations (each of the form $n_i^Tx=x_i^Tp_i$ for the unknown point $x$), for which we find a least squares solution in practice.
+
+Additionally, many edge configurations convey too little information to uniquely determine the location (as an example consider a xy-plane intersecting the four k-directed voxel edges). These configurations lead to an underdetermined system of linear equations. This is solved by adding additional equations (multi objective linear least squares) that directly encode a preferred vertex location. We give these additional equations little weight, so that they only take over when the system is otherwise truly underdetermined.
+
 ## References
 
 -   <a id="1">[1]</a>
@@ -91,4 +110,6 @@ The bisection method is useful when a) linearity is not given, b) you have acces
 -   <a id="2">[2]</a>
     Inigio Quilez's.
     https://iquilezles.org/articles/distfunctions/
--   <a id="2">[3]</a> Gibson, Sarah FF. "Constrained elastic surface nets: Generating smooth surfaces from binary segmented data." International Conference on Medical Image Computing and Computer-Assisted Intervention. Springer, Berlin, Heidelberg, 1998.
+-   <a id="3">[3]</a> Gibson, Sarah FF. "Constrained elastic surface nets: Generating smooth surfaces from binary segmented data." International Conference on Medical Image Computing and Computer-Assisted Intervention. Springer, Berlin, Heidelberg, 1998.
+-   <a id="4">[4]</a>Lorensen, William E., and Harvey E. Cline. "Marching cubes: A high resolution 3D surface construction algorithm." ACM siggraph computer graphics 21.4 (1987): 163-169.
+-   <a id="5">[5]</a> Ju, Tao, et al. "Dual contouring of hermite data." Proceedings of the 29th annual conference on Computer graphics and interactive techniques. 2002.

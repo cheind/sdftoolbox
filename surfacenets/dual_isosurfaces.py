@@ -30,7 +30,7 @@ def dual_isosurface(
     edge_strategy: "DualEdgeStrategy" = None,
     triangulate: bool = False,
     return_debug_info: bool = False,
-    vertex_relaxation_percent: float = 0.25,
+    vertex_relaxation_percent: float = 0.1,
 ) -> Union[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray, DebugInfo]]:
     """A vectorized dual iso-surface extraction algorithm for signed distance fields.
 

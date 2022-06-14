@@ -22,12 +22,32 @@ For many primitive shapes in $\mathbb{R}^3$ analytic SDF representations are kno
 
 Isosurface extraction is the task of finding a suitable tesselation of the boundary (or any constant offset value) of a SDF. The methods considered in this library rely a regular SDF sampling volume from which the resulting mesh is generated. The two schemes that dominate the isosurface extraction field differ in the way they generate the tesselated topology. The following table lists the differences:
 
-| Method |  Edge  | Face | Voxel  |
-| :----: | :----: | :--: | :----: |
-| Primal | Vertex | Edge | Faces  |
-|  Dual  |  Face  | Edge | Vertex |
+<table>
+  <tr>
+    <td></th>
+    <td colspan="3">Intersecting grid element</th>
+  </tr>
+  <tr>
+    <th>Method</th>
+    <th>Edge</th>
+    <th>Face</th>
+    <th>Voxel</th>
+  </tr>
+  <tr>
+    <td>Primal</td>
+    <td>Vertex</td>
+    <td>Edge</td>
+    <td>Face(s)</td>
+  </tr>
+  <tr>
+    <td>Dual</td>
+    <td>Face</td>
+    <td>Edge</td>
+    <td>Vertex</td>
+  </tr>
+</table>
 
-In columns are the type of intersection For example Edge means that an edge of the sampling volume crosses the boundary of the SDF. In rows are resulting elements of the mesh. For example, first row, second column means that in primal methods a vertex is created for each sampling edge that crosses the SDF boundary. See [[1]](#1) for details.
+The above table lists for each type of grid element that intersects the boundary of the SDF surface, see which topological element is generated with which methodological approach. For example, first row, second column means that in primal methods a vertex is created for each sampling edge that crosses the SDF boundary. See [[1]](#1) for a more elaborate discussion.
 
 ## Coordinate systems
 

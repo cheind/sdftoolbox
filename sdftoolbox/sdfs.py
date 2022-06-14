@@ -101,7 +101,6 @@ class Transform(SDF):
         if t_world_local is None:
             t_world_local = np.eye(4, dtype=float_dtype)
 
-        self._t_dirty = False
         self._t_scale: float = 1.0
         self.node = node
         self.t_world_local = t_world_local
@@ -114,17 +113,17 @@ class Transform(SDF):
     def t_world_local(self, m: np.ndarray):
         self._t_world_local = np.asfarray(m, dtype=float_dtype)
         self._update_scale()
-        self._t_dirty = True
+        self._update_inv()
 
     @property
     def t_local_world(self) -> np.ndarray:
-        if self._t_dirty:
-            self._t_local_world = np.linalg.inv(self.t_world_local)
-            self._t_dirty = False
         return self._t_local_world
 
     def sample(self, x: np.ndarray) -> np.ndarray:
         return self.node.sample(self._to_local(x)) * self._t_scale
+
+    def _update_inv(self):
+        self._t_local_world = np.linalg.inv(self.t_world_local)
 
     def _update_scale(self):
         scales = np.linalg.norm(self._t_world_local[:3, :3], axis=0)

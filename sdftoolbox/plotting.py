@@ -1,6 +1,6 @@
 """Helper functions for plotting meshes through matplotlib."""
 
-from typing import Literal
+from typing import Literal, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,13 +8,14 @@ from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 
 
 def create_figure(
     proj_type: Literal["persp", "ortho"] = "persp",
     fig_aspect: float = 1,
     headless: bool = False,
-) -> Figure:
+) -> tuple[Figure, Axes]:
     """Returns a figure/axis for 3d plotting."""
     if headless:
         fig = Figure(figsize=plt.figaspect(fig_aspect))
@@ -27,7 +28,7 @@ def create_figure(
 
 def create_split_figure(
     sync: bool = True, proj_type: Literal["persp", "ortho"] = "persp"
-):
+) -> tuple[Figure, Axes]:
     """Returns a figure composed of two axis for side-by-side 3d plotting.
 
     Params:
@@ -143,22 +144,25 @@ def plot_mesh(
             arrows will be plotted to indicate the normal per face.
         vertex_normals: (N,3) array of vertex normals (optional). When supplied,
             additional arrows will be plotted to indicate the normal per vertex.
+        kwargs: additional arguments passed to Poly3DCollection
     """
     # Better colors? https://matplotlib.org/stable/gallery/mplot3d/voxels_rgb.html
     # https://stackoverflow.com/questions/56864378/how-to-light-and-shade-a-poly3dcollection
-    mesh = Poly3DCollection(verts[faces], linewidth=0.2, zorder=1, **kwargs)
+    kwargs = {"linewidth": 0.2, "zorder": 1, **kwargs}
+    mesh = Poly3DCollection(verts[faces], **kwargs)
     mesh.set_edgecolor("w")
     ax.add_collection3d(mesh)
 
     if face_normals is not None:
         centers = verts[faces].mean(1)
-        plot_normals(ax, centers, face_normals, "purple")
+        plot_normals(ax, centers, face_normals, color="purple")
 
     if vertex_normals is not None:
-        plot_normals(ax, verts, vertex_normals, "lime")
+        plot_normals(ax, verts, vertex_normals, color="lime")
 
 
 def plot_samples(ax, xyz: np.ndarray, sdf_values: np.ndarray = None):
+    """Plots sampling points and colorizes them based on sdf classification."""
     colors = np.zeros_like(xyz)
     if sdf_values is not None:
         colors[sdf_values <= 0] = (1.0, 1.0, 0.0)
@@ -167,7 +171,10 @@ def plot_samples(ax, xyz: np.ndarray, sdf_values: np.ndarray = None):
     )
 
 
-def plot_normals(ax, origins: np.ndarray, dirs: np.ndarray, color: str = "k"):
+def plot_normals(ax, origins: np.ndarray, dirs: np.ndarray, **kwargs):
+    """Plots normals from points and directions"""
+    kwargs = {"linewidth": 0.5, "zorder": 2, "length": 0.1, **kwargs}
+
     ax.quiver(
         origins[:, 0],
         origins[:, 1],
@@ -175,14 +182,12 @@ def plot_normals(ax, origins: np.ndarray, dirs: np.ndarray, color: str = "k"):
         dirs[:, 0],
         dirs[:, 1],
         dirs[:, 2],
-        length=0.1,
-        color=color,
-        linewidth=0.5,
-        zorder=2,
+        **kwargs,
     )
 
 
 def plot_edges(ax, src, dst, **kwargs):
+    """Plots pair of points as edges"""
     lines = np.stack((src, dst), 1)
     art = Line3DCollection(lines, **kwargs)
     ax.add_collection3d(art)
@@ -194,7 +199,7 @@ def create_mesh_figure(
     face_normals: np.ndarray = None,
     vertex_normals: np.ndarray = None,
     fig_kwargs: dict = None,
-):
+) -> tuple[Figure, Axes]:
     """Helper to quickly plot a single mesh.
 
     This method creates a 3d enabled figure, adds the given mesh to the plot
@@ -207,6 +212,7 @@ def create_mesh_figure(
             arrows will be plotted to indicate the normal per face.
         vertex_normals: (N,3) array of vertex normals (optional). When supplied,
             additional arrows will be plotted to indicate the normal per vertex.
+        fig_kwargs: additional arguments passed to create_figure
 
     Returns:
         fig: matplotlib figure
@@ -229,7 +235,7 @@ def create_mesh_figure(
 def generate_rotation_gif(
     filename: str,
     fig: Figure,
-    ax,
+    axs: Union[Axes, list[Axes]],
     azimuth_range: tuple[float, float] = (0, 2 * np.pi),
     num_images: int = 64,
     total_time: float = 5.0,
@@ -239,7 +245,7 @@ def generate_rotation_gif(
     Params:
         filename: path to resulting file
         fig: matplotlib figure
-        ax: matplotlib 3d axis
+        ax: matplotlib 3d axis or list of axis
         azimuth_range: the incremental range of the rotation. Animation
             starts at ax.azimuth + azimut_range[0]
         num_images: total number of frames
@@ -250,14 +256,19 @@ def generate_rotation_gif(
     azimuth_incs = np.degrees(
         np.linspace(azimuth_range[0], azimuth_range[1], num_images, endpoint=False)
     )
-    azimuth0, elevation0 = ax.azim, ax.elev
+
+    if isinstance(axs, Axes):
+        axs = [Axes]
+
+    azimuth0, elevation0 = zip(*[(ax.azim, ax.elev) for ax in axs])
 
     with imageio.get_writer(
         filename, mode="I", duration=total_time / num_images
     ) as writer:
         canvas = FigureCanvasAgg(fig)
         for ainc in azimuth_incs:
-            ax.view_init(elev=elevation0, azim=azimuth0 + ainc)
+            for ax, az0, el0 in zip(axs, azimuth0, elevation0):
+                ax.view_init(elev=el0, azim=az0 + ainc)
             canvas.draw()
             buf = canvas.buffer_rgba()
             img = np.asarray(buf)

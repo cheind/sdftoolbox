@@ -148,6 +148,17 @@ We use a low resolution grid of resolution `10x10x10`.
 
 Since the boxes are aligned with the world coordinate system, the midpoint strategy generates visually pleasing reconstruction. However, due to the placement of the vertices in the voxel centers, the resulting surface model has too little volume (hard to see from the plot). The naive SurfaceNets variant deforms the shape of the model due to contraction of the average. This causes a loss of sharp features and a resulting volume that is too small. Only the Dual Contouring strategy is capable of reconstructing sharp featuers and placing the vertices at locations that give rise to a volumetric consistent reconstruction.
 
+Shown below are the reconstructions of the same boxes, but this time rotated around the axis `(1,1,1)` by 45°.
+
+<div align=center>
+      <img src="vertex_strategies_rot_box.gif" width="95%">
+      <figcaption>Comparison of different vertex placement strategies using an analytic SDF formed by two offsetted and rotated boxes. Each plot shows the isosurface extraction result of the corresponding method labelled on top of the plot.
+      <figcaption>  
+</div>
+<br>
+
+This time the midpoint placement strategy fails to capture the shape of the object (like aliasing effects in rendering). The naive SurfaceNets method has the same issues as in the aligned case (non sharp features, volume contraction). The Dual Contouring method manages to capture the shape correctly but induces a few non-manifold vertices (hard to see from the plot).
+
 ## References
 
 -   <a id="1">[1]</a>

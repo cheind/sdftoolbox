@@ -182,7 +182,7 @@ def plot_edge_strategies():
 def plot_vertex_strategies():
     # Box in canonical orientation
 
-    def plot_boxes(boxes, grid, low=(-1, -1, -1), high=(1, 1, 1)):
+    def plot_boxes(boxes, grid):
         fig = plt.figure(figsize=plt.figaspect(0.3333))
         ax0 = fig.add_subplot(
             1, 3, 1, projection="3d", proj_type="persp", computed_zorder=False
@@ -192,6 +192,41 @@ def plot_vertex_strategies():
         )
         ax2 = fig.add_subplot(
             1, 3, 3, projection="3d", proj_type="persp", computed_zorder=False
+        )
+
+        # for the contour plot
+        minc = grid.min_corner.copy()
+        minc[2] = 0
+        maxc = grid.max_corner.copy()
+        maxc[2] = 0
+        xyz = sdftoolbox.sdfs.Grid((100, 100, 1), min_corner=minc, max_corner=maxc).xyz
+        sdf = boxes.sample(xyz)
+        cs = ax0.contour(
+            xyz[..., 0, 0],
+            xyz[..., 0, 1],
+            sdf[..., 0],
+            zdir="z",
+            offset=0,
+            levels=[0],
+            colors="purple",
+        )
+        cs = ax1.contour(
+            xyz[..., 0, 0],
+            xyz[..., 0, 1],
+            sdf[..., 0],
+            zdir="z",
+            offset=0,
+            levels=[0],
+            colors="purple",
+        )
+        cs = ax2.contour(
+            xyz[..., 0, 0],
+            xyz[..., 0, 1],
+            sdf[..., 0],
+            zdir="z",
+            offset=0,
+            levels=[0],
+            colors="purple",
         )
 
         verts0, faces0 = sdftoolbox.dual_isosurface(
@@ -206,9 +241,9 @@ def plot_vertex_strategies():
             vertex_strategy=sdftoolbox.DualContouringVertexStrategy(),
             edge_strategy=sdftoolbox.BisectionEdgeStrategy(),
         )
-        sdftoolbox.plotting.setup_axes(ax0, low, high)
-        sdftoolbox.plotting.setup_axes(ax1, low, high)
-        sdftoolbox.plotting.setup_axes(ax2, low, high)
+        sdftoolbox.plotting.setup_axes(ax0, grid.min_corner, grid.max_corner)
+        sdftoolbox.plotting.setup_axes(ax1, grid.min_corner, grid.max_corner)
+        sdftoolbox.plotting.setup_axes(ax2, grid.min_corner, grid.max_corner)
         ax0.set_title("sdftoolbox.MidpointVertexStrategy")
         ax1.set_title("sdftoolbox.NaiveSurfaceNetVertexStrategy")
         ax2.set_title("sdftoolbox.DualContouringVertexStrategy")
@@ -217,7 +252,9 @@ def plot_vertex_strategies():
         sdftoolbox.plotting.plot_mesh(ax2, verts2, faces2)
         return fig, (ax0, ax1, ax2)
 
-    grid = sdftoolbox.sdfs.Grid((10, 10, 10))
+    grid = sdftoolbox.sdfs.Grid(
+        (10, 10, 10), min_corner=(-1.1, -1.1, -1.1), max_corner=(1.1, 1.1, 1.1)
+    )
     # Canonical aligned boxes
     boxes = sdftoolbox.sdfs.Union(
         [

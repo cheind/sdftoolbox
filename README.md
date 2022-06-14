@@ -29,6 +29,10 @@ See [examples/compare.py](examples/compare.py) for details and [doc/SDF.md](doc/
 -   Plotting support for reconstructed meshes using matplotlib
 -   Exporting (STL) of tesselated isosurfaces
 
+## Documentation
+
+Algorithmic ideas, mathematical details and results are discussed in [doc/SDF.md](doc/SDF.md).
+
 ## Example Code
 
 ```python
@@ -116,14 +120,4 @@ Here are some additional plots from the library
 
 ## References
 
--   Gibson, Sarah F. Frisken. "Constrained elastic surfacenets: Generating smooth models from binary segmented data." TR99 24 (1999).
--   Ju, Tao, et al. "Dual contouring of hermite data." Proceedings of the 29th annual conference on Computer graphics and interactive techniques. 2002.
--   Naive SurfaceNets: https://0fps.net/2012/07/12/smooth-voxel-terrain-part-2/
--   Signed Distance Fields: https://iquilezles.org/articles/distfunctions/
-
-## Notes (just for me)
-
--   for a cube, assuming surfae lin when computing ts is not quite right. increase num samples or add a newton root finder. Root finder
-    would not work: in case of box you easily have zero grads in the edge direction.
--   biasing for plane parallel xy is needed, otherwise no location info.
--   naive method might shrink object (two edge case)
+See [doc/SDF.md](doc/SDF.md).

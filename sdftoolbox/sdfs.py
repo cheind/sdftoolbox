@@ -124,7 +124,21 @@ class Transform(SDF):
         return self.node.sample(self._to_local(x)) * self._t_scale
 
     def _update_inv(self):
-        self._t_local_world = np.linalg.inv(self.t_world_local)
+        # Decompose into as M=TRS with uniform scale as
+        # M^-1=(S^-1)(R^T)(T^-1)
+        s = np.linalg.norm(self.t_world_local[:3, 0])
+        Sinv = np.diag([1 / s, 1 / s, 1 / s, 1.0])
+        R = self.t_world_local[:3, :3] / s
+        Rinv = np.eye(4, dtype=self.t_world_local.dtype)
+        Rinv[:3, :3] = R.T
+        t = self.t_world_local[:3, 3]
+        Tinv = np.eye(4, dtype=self.t_world_local.dtype)
+        Tinv[:3, 3] = -t
+        self._t_local_world = Sinv @ Rinv @ Tinv
+
+        # print(self._t_local_world, np.linalg.inv(self.t_world_local))
+
+        # self._t_local_world = np.linalg.inv(self.t_world_local)
 
     def _update_scale(self):
         scales = np.linalg.norm(self._t_world_local[:3, :3], axis=0)
@@ -137,6 +151,13 @@ class Transform(SDF):
 
     def _to_local(self, x: np.ndarray) -> np.ndarray:
         return maths.dehom(maths.hom(x) @ self.t_local_world.T)
+
+    def _decompose_matrix(
+        self, m: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Decomposes the 4x4 matrix into scale, rotation and translation parts"""
+        # M=TRS (uniform scale)
+        #
 
     def transform(
         self,

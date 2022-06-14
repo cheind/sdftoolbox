@@ -11,6 +11,7 @@ def extract(scene: sdftoolbox.sdfs.SDF, grid: sdftoolbox.Grid):
         scene,
         grid,
         vertex_strategy=sdftoolbox.DualContouringVertexStrategy(),
+        edge_strategy=sdftoolbox.NewtonEdgeStrategy(),
         triangulate=False,
     )
     return verts, faces

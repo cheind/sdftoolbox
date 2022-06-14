@@ -37,9 +37,7 @@ def main():
         triangulate=False,
     )
     print(
-        f"SurfaceNets took {time.perf_counter() - t0:.3f} secs",
-        "#faces",
-        len(faces_sn),
+        f"SurfaceNets took {time.perf_counter() - t0:.3f} secs", "#faces", len(faces_sn)
     )
 
     t0 = time.perf_counter()

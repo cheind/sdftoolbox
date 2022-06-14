@@ -55,12 +55,13 @@ class SDF(abc.ABC):
                     np.arange(x.ndim - 1).tolist(),
                 )
                 * h
+                * 0.5
             )
             x = np.expand_dims(x, -2)
             fwd = self.sample(x + offsets)
             bwd = self.sample(x - offsets)
 
-            g = (fwd - bwd) / (2 * h)
+            g = (fwd - bwd) / h
         else:
             raise ArgumentError("Unknown mode")
 

@@ -1,6 +1,6 @@
 # sdftoolbox
 
-This repository provides vectorized Python methods for creating, manipulating and tessellating signed distance fields (SDFs). In particular the focus is on dual methods for the problem of isosurface extraction from SDFs. While primal methods generate vertices for each edge crossing the surface boundary, dual methods generate one vertex per voxel. Dual methods generally lead to simpler algorithms and many modern methods are based on a dual approach.
+This repository provides vectorized Python methods for creating, manipulating and tessellating signed distance fields (SDFs). This library was started to investigate variants of dual isosurface extraction methods, but has since evolved into a useful toolbox around SDFs.
 
 <div align="center">
 <img src="doc/surfacenets.svg">

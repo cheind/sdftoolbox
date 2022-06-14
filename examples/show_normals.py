@@ -7,16 +7,17 @@ import sdftoolbox
 def main():
 
     # Setup the scene
-    scene = sdftoolbox.sdfs.Box((1.1, 1.1, 1.1))
-    grid = sdftoolbox.Grid((5, 5, 5))
+    scene = sdftoolbox.sdfs.Box((1.1, 1.1, 1.1)).transform(rot=(1, 1, 1, 0.75))
+    grid = sdftoolbox.Grid((3, 3, 3))
 
     # Generate mesh
     verts, faces = sdftoolbox.dual_isosurface(
         scene,
         grid,
+        edge_strategy=sdftoolbox.NewtonEdgeStrategy(),
         vertex_strategy=sdftoolbox.DualContouringVertexStrategy(),
-        # strategy=sn.NaiveSurfaceNetStrategy(),
         triangulate=False,
+        vertex_relaxation_percent=0.25,
     )
 
     # Compute normals

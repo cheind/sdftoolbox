@@ -47,7 +47,7 @@ Isosurface extraction is the task of finding a suitable tesselation of the bound
   </tr>
 </table>
 
-The above table lists for each type of grid element that intersects the boundary of the SDF surface, see which topological element is generated with which methodological approach. For example, first row, second column means that in primal methods a vertex is created for each sampling edge that crosses the SDF boundary. See [[1]](#1) for a more elaborate discussion.
+The table above lists, for each type of grid element that intersects the boundary of the SDF surface, which topological element is generated using either primary or dual approaches. For example, first row, second column means that in primal methods a vertex is created for each sampling edge that crosses the SDF boundary. See [[1]](#1) for a more elaborate discussion.
 
 ## Coordinate systems
 

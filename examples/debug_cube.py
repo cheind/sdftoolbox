@@ -35,17 +35,12 @@ def main():
     verts, faces, debug = sdftoolbox.dual_isosurface(
         scene,
         grid,
-        # vertex_strategy=sn.DualContouringVertexStrategy(),
-        # edge_strategy=sn.BisectionEdgeStrategy(max_steps=50),
+        edge_strategy=sdftoolbox.BisectionEdgeStrategy(),
+        vertex_strategy=sdftoolbox.DualContouringVertexStrategy(),
         triangulate=False,
+        vertex_relaxation_percent=0.25,
         return_debug_info=True,
     )
-
-    # Compute normals
-    face_normals = sdftoolbox.mesh.compute_face_normals(verts, faces)
-    vert_normals = scene.gradient(verts, normalize=True)
-    # Alternatively via averaging face normals
-    # vert_normals = sn.mesh.compute_vertex_normals(verts, faces, face_normals)
 
     # Plot mesh+normals
     fig, ax = sdftoolbox.plotting.create_mesh_figure(
@@ -54,6 +49,9 @@ def main():
 
     v, f = get_rotated_box(rot)
     sdftoolbox.plotting.plot_mesh(ax, v, f, alpha=0.1, color="gray")
+    sdftoolbox.plotting.plot_normals(
+        ax, v, scene.gradient(v, normalize=True, h=1e-12), color="r"
+    )  # Strange normals, even for rotated box??
 
     isect = grid.grid_to_data(debug.edges_isect_coords[debug.edges_active_mask])
     isect_n = scene.gradient(isect, normalize=True)
@@ -67,7 +65,7 @@ def main():
     sdftoolbox.plotting.plot_edges(
         ax, active_src, active_dst, color="yellow", linewidth=0.5
     )
-    sdftoolbox.plotting.plot_normals(ax, isect, isect_n, "yellow")
+    sdftoolbox.plotting.plot_normals(ax, isect, isect_n, color="yellow")
 
     sdftoolbox.plotting.plot_samples(ax, grid.xyz, scene.sample(grid.xyz))
     sdftoolbox.plotting.setup_axes(ax, grid.min_corner, grid.max_corner)

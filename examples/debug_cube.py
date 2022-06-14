@@ -50,8 +50,9 @@ def main():
     v, f = get_rotated_box(rot)
     sdftoolbox.plotting.plot_mesh(ax, v, f, alpha=0.1, color="gray")
     sdftoolbox.plotting.plot_normals(
-        ax, v, scene.gradient(v, normalize=True, h=1e-12), color="r"
+        ax, v, scene.gradient(v, normalize=False, h=1e-12), color="r"
     )  # Strange normals, even for rotated box??
+    print(scene.sample(v))
 
     isect = grid.grid_to_data(debug.edges_isect_coords[debug.edges_active_mask])
     isect_n = scene.gradient(isect, normalize=True)
@@ -59,7 +60,6 @@ def main():
     active_src, active_dst = grid.find_edge_vertices(
         np.where(debug.edges_active_mask)[0], ravel=False
     )
-    print(active_src, active_dst)
     active_src = grid.grid_to_data(active_src)
     active_dst = grid.grid_to_data(active_dst)
     sdftoolbox.plotting.plot_edges(

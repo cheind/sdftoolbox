@@ -55,7 +55,6 @@ def dual_isosurface(
             vertices per cell are required.
         return_debug_info: Whether to return additional intermediate results
 
-
     Returns:
         verts: (N,3) array of vertices
         faces: (M,F) index array of faces into vertices. For quadliterals F is 4,
@@ -132,7 +131,6 @@ def dual_isosurface(
             node,
             grid,
         )
-        t = np.clip(t, 0.0 - vertex_relaxation_percent, 1.0 + vertex_relaxation_percent)
         # Compute the floating point grid coords of intersection
         isect_coords = sijk[active] + off[None, :] * t[:, None]
         need_flip = (sdf_dst[active] - sdf_src[active]) < 0.0
@@ -179,6 +177,16 @@ def dual_isosurface(
     # is selected, we expect the returned coordinates to be in voxel space.
     grid_verts = vertex_strategy.find_vertex_locations(
         active_voxels, edges_isect_coords, node, grid
+    )
+    # Clip vertices to voxel bounds allowing for a relaxation tolerance.
+    grid_ijk = grid.unravel_nd(active_voxels, grid.padded_shape)
+    grid_verts = (
+        np.clip(
+            grid_verts - grid_ijk,
+            0.0 - vertex_relaxation_percent,
+            1.0 + vertex_relaxation_percent,
+        )
+        + grid_ijk
     )
 
     # Finally, we need to account for the padded voxels and scale them to

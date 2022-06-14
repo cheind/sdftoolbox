@@ -126,6 +126,28 @@ Dual Contouring [[5]](#5) attempts to restore sharp features by determining the 
 
 Additionally, many edge configurations convey too little information to uniquely determine the location (as an example consider a xy-plane intersecting the four k-directed voxel edges). These configurations lead to an underdetermined system of linear equations. This is solved by adding additional equations (multi objective linear least squares) that directly encode a preferred vertex location. We give these additional equations little weight, so that they only take over when the system is otherwise truly underdetermined.
 
+#### Vertex strategies evaluation
+
+The following plot compares the three vertex placement strategies using the SDF of a union of two (offsetted) axis aligned boxes given by
+
+```python
+boxes = sdftoolbox.sdfs.Union([
+      sdftoolbox.sdfs.Box().transform(trans=(0.5, 0.5, 0.5)),
+      sdftoolbox.sdfs.Box(),
+]).transform(trans=(-0.25, -0.25, -0.25))
+```
+
+We use a low resolution grid of resolution `10x10x10`.
+
+<div align=center>
+      <img src="vertex_strategies_aligned_box.gif" width="95%">
+      <figcaption>Comparison of different vertex placement strategies using an analytic SDF formed by two offsetted but axis aligned boxes. Each plot shows the isosurface extraction result of the corresponding method labelled on top of the plot.
+      <figcaption>  
+</div>
+<br>
+
+Since the boxes are aligned with the world coordinate system, the midpoint strategy generates visually pleasing reconstruction. However, due to the placement of the vertices in the voxel centers, the resulting surface model has too little volume (hard to see from the plot). The naive SurfaceNets variant deforms the shape of the model due to contraction of the average. This causes a loss of sharp features and a resulting volume that is too small. Only the Dual Contouring strategy is capable of reconstructing sharp featuers and placing the vertices at locations that give rise to a volumetric consistent reconstruction.
+
 ## References
 
 -   <a id="1">[1]</a>

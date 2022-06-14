@@ -22,14 +22,6 @@ def plot_frames():
         ijk[..., 2],
         color=colors.reshape(-1, 4),
     )
-    # ax.scatter(
-    #     ijk[:-1, :-1, :-1, 0],
-    #     ijk[:-1, :-1, :-1, 1],
-    #     ijk[:-1, :-1, :-1, 2],
-    #     label="voxel coords",
-    #     alpha=1,
-    #     marker="x",
-    # )
     ax.plot(
         [ijk[0, 0, 0, 0], ijk[1, 0, 0, 0]],
         [ijk[0, 0, 0, 1], ijk[1, 0, 0, 1]],
@@ -187,8 +179,75 @@ def plot_edge_strategies():
     plt.close(fig)
 
 
+def plot_vertex_strategies():
+    # Box in canonical orientation
+
+    def plot_boxes(boxes, grid, low=(-1, -1, -1), high=(1, 1, 1)):
+        fig = plt.figure(figsize=plt.figaspect(0.3333))
+        ax0 = fig.add_subplot(
+            1, 3, 1, projection="3d", proj_type="persp", computed_zorder=False
+        )
+        ax1 = fig.add_subplot(
+            1, 3, 2, projection="3d", proj_type="persp", computed_zorder=False
+        )
+        ax2 = fig.add_subplot(
+            1, 3, 3, projection="3d", proj_type="persp", computed_zorder=False
+        )
+
+        verts0, faces0 = sdftoolbox.dual_isosurface(
+            boxes, grid, vertex_strategy=sdftoolbox.MidpointVertexStrategy()
+        )
+        verts1, faces1 = sdftoolbox.dual_isosurface(
+            boxes, grid, vertex_strategy=sdftoolbox.NaiveSurfaceNetVertexStrategy()
+        )
+        verts2, faces2 = sdftoolbox.dual_isosurface(
+            boxes,
+            grid,
+            vertex_strategy=sdftoolbox.DualContouringVertexStrategy(),
+            edge_strategy=sdftoolbox.BisectionEdgeStrategy(),
+        )
+        sdftoolbox.plotting.setup_axes(ax0, low, high)
+        sdftoolbox.plotting.setup_axes(ax1, low, high)
+        sdftoolbox.plotting.setup_axes(ax2, low, high)
+        ax0.set_title("sdftoolbox.MidpointVertexStrategy")
+        ax1.set_title("sdftoolbox.NaiveSurfaceNetVertexStrategy")
+        ax2.set_title("sdftoolbox.DualContouringVertexStrategy")
+        sdftoolbox.plotting.plot_mesh(ax0, verts0, faces0)
+        sdftoolbox.plotting.plot_mesh(ax1, verts1, faces1)
+        sdftoolbox.plotting.plot_mesh(ax2, verts2, faces2)
+        return fig, (ax0, ax1, ax2)
+
+    grid = sdftoolbox.sdfs.Grid((10, 10, 10))
+    # Canonical aligned boxes
+    boxes = sdftoolbox.sdfs.Union(
+        [
+            sdftoolbox.sdfs.Box().transform(trans=(0.5, 0.5, 0.5)),
+            sdftoolbox.sdfs.Box(),
+        ]
+    ).transform(trans=(-0.25, -0.25, -0.25))
+    fig, axs = plot_boxes(boxes, grid)
+    sdftoolbox.plotting.generate_rotation_gif(
+        "doc/vertex_strategies_aligned_box.gif", fig, axs, total_time=10
+    )
+    plt.close(fig)
+
+    # Rotate boxes
+    boxes = sdftoolbox.sdfs.Union(
+        [
+            sdftoolbox.sdfs.Box().transform(trans=(0.5, 0.5, 0.5)),
+            sdftoolbox.sdfs.Box(),
+        ]
+    ).transform(trans=(-0.25, -0.25, -0.25), rot=(1, 1, 1, np.pi / 4))
+    fig, axs = plot_boxes(boxes, grid)
+    sdftoolbox.plotting.generate_rotation_gif(
+        "doc/vertex_strategies_rot_box.gif", fig, axs, total_time=10
+    )
+    plt.close(fig)
+
+
 if __name__ == "__main__":
 
-    plot_frames()
-    plot_edges()
-    plot_edge_strategies()
+    # plot_frames()
+    # plot_edges()
+    # plot_edge_strategies()
+    plot_vertex_strategies()

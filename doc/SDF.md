@@ -14,7 +14,7 @@ $$
 \end{cases}
 $$
 
-Its useful to note that the tuple $$(x,|f(x)|)$$ describes a sphere centered at $x$ that touches the closest surface boundary.
+Its useful to note that the tuple $(x,|f(x)|)$ describes a sphere centered at $x$ that touches the closest surface boundary.
 
 Frankly, it does not tell you the contact location, only the distance. Still, this property gives raise to efficient ray maching schemes for visualizing SDF volumes. Another useful property of SDFs: the gradient $\nabla_x f(x)$ points into the direction of fastest increase of signed distance.
 

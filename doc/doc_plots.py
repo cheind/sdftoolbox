@@ -201,7 +201,7 @@ def plot_vertex_strategies():
         maxc[2] = 0
         xyz = sdftoolbox.sdfs.Grid((100, 100, 1), min_corner=minc, max_corner=maxc).xyz
         sdf = boxes.sample(xyz)
-        cs = ax0.contour(
+        _ = ax0.contour(
             xyz[..., 0, 0],
             xyz[..., 0, 1],
             sdf[..., 0],
@@ -210,7 +210,7 @@ def plot_vertex_strategies():
             levels=[0],
             colors="purple",
         )
-        cs = ax1.contour(
+        _ = ax1.contour(
             xyz[..., 0, 0],
             xyz[..., 0, 1],
             sdf[..., 0],
@@ -219,7 +219,7 @@ def plot_vertex_strategies():
             levels=[0],
             colors="purple",
         )
-        cs = ax2.contour(
+        _ = ax2.contour(
             xyz[..., 0, 0],
             xyz[..., 0, 1],
             sdf[..., 0],

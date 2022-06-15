@@ -358,8 +358,8 @@ def plot_edge_strategies_dual_contouring_rot_cube():
 
 if __name__ == "__main__":
 
-    # plot_frames()
-    # plot_edges()
-    # plot_edge_strategies()
-    # plot_vertex_strategies()
-    plot_edge_strategies_dual_contouring_rot_cube()
+    plot_frames()
+    plot_edges()
+    plot_edge_strategies()
+    plot_vertex_strategies()
+    # plot_edge_strategies_dual_contouring_rot_cube()

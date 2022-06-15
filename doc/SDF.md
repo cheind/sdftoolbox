@@ -84,8 +84,8 @@ The library implements this recipe in vectorized form. That is, all steps of the
 
 The recipe above gives raise to different behavioral aspects that are implemented as exchangable modules:
 
--   _edge strategies_: determines how the intersection between an edge and the surface boundary as dictated by the SDF is found.
--   _vertex strategies_: determines how the vertex from the voxel's active edges is computed.
+-   _edge strategies_: determines the specific location of the surface intersection along an active edge.
+-   _vertex strategies_: determines the way the vertex position is calculated for all active voxels.
 
 ### Edge strategies
 

@@ -2,7 +2,7 @@
 
 The aim of this document is to provide a documentation of the methods implemented by this library. We limit the discussion to $\mathbb{R}^3$ Euclidean space.
 
-_Note: In case math rendering looks odd, you might switch to raw mode for viewing._
+_Note: In case math rendering looks odd, you might want to read this page in raw mode._
 
 ## Signed distance fields
 

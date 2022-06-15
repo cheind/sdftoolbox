@@ -282,9 +282,84 @@ def plot_vertex_strategies():
     plt.close(fig)
 
 
+def plot_edge_strategies_dual_contouring_rot_cube():
+    fig = plt.figure(figsize=plt.figaspect(0.3333))
+    ax0 = fig.add_subplot(
+        1, 3, 1, projection="3d", proj_type="persp", computed_zorder=False
+    )
+    ax1 = fig.add_subplot(
+        1, 3, 2, projection="3d", proj_type="persp", computed_zorder=False
+    )
+    ax2 = fig.add_subplot(
+        1, 3, 3, projection="3d", proj_type="persp", computed_zorder=False
+    )
+
+    grid = sdftoolbox.sdfs.Grid(
+        (5, 5, 5), min_corner=(-1.0, -1.0, -1.0), max_corner=(1.0, 1.0, 1.0)
+    )
+    # Canonical aligned boxes
+    box = sdftoolbox.sdfs.Box((1.2, 1.2, 1.2)).transform(rot=(1, 0, 0, np.pi / 4))
+
+    verts0, faces0, debug0 = sdftoolbox.dual_isosurface(
+        box,
+        grid,
+        vertex_strategy=sdftoolbox.DualContouringVertexStrategy(),
+        edge_strategy=sdftoolbox.LinearEdgeStrategy(),
+        return_debug_info=True,
+    )
+    verts1, faces1, debug1 = sdftoolbox.dual_isosurface(
+        box,
+        grid,
+        vertex_strategy=sdftoolbox.DualContouringVertexStrategy(),
+        edge_strategy=sdftoolbox.NewtonEdgeStrategy(),
+        return_debug_info=True,
+    )
+    verts2, faces2, debug2 = sdftoolbox.dual_isosurface(
+        box,
+        grid,
+        vertex_strategy=sdftoolbox.DualContouringVertexStrategy(),
+        edge_strategy=sdftoolbox.BisectionEdgeStrategy(),
+        return_debug_info=True,
+    )
+
+    def plot_debug(ax, debug):
+        isect = grid.grid_to_data(debug.edges_isect_coords[debug.edges_active_mask])
+        isect_n = box.gradient(isect, normalize=True)
+
+        active_src, active_dst = grid.find_edge_vertices(
+            np.where(debug.edges_active_mask)[0], ravel=False
+        )
+        active_src = grid.grid_to_data(active_src)
+        active_dst = grid.grid_to_data(active_dst)
+        sdftoolbox.plotting.plot_edges(
+            ax, active_src, active_dst, color="k", linewidth=0.5
+        )
+        sdftoolbox.plotting.plot_normals(ax, isect, isect_n, color="k")
+
+    sdftoolbox.plotting.setup_axes(ax0, grid.min_corner, grid.max_corner)
+    sdftoolbox.plotting.setup_axes(ax1, grid.min_corner, grid.max_corner)
+    sdftoolbox.plotting.setup_axes(ax2, grid.min_corner, grid.max_corner)
+    ax0.set_title("DC + sdftoolbox.LinearEdgeStrategy")
+    ax1.set_title("DC + sdftoolbox.NewtonEdgeStrategy")
+    ax2.set_title("DC + sdftoolbox.BisectionEdgeStrategy")
+    sdftoolbox.plotting.plot_mesh(ax0, verts0, faces0, alpha=0.5)
+    sdftoolbox.plotting.plot_mesh(ax1, verts1, faces1, alpha=0.5)
+    sdftoolbox.plotting.plot_mesh(ax2, verts2, faces2, alpha=0.5)
+    plot_debug(ax0, debug0)
+    plot_debug(ax1, debug1)
+    plot_debug(ax2, debug2)
+
+    plt.show()
+    # sdftoolbox.plotting.generate_rotation_gif(
+    #     "doc/vertex_strategies_aligned_box.gif", fig, axs, total_time=10
+    # )
+    # plt.close(fig)
+
+
 if __name__ == "__main__":
 
     # plot_frames()
     # plot_edges()
     # plot_edge_strategies()
-    plot_vertex_strategies()
+    # plot_vertex_strategies()
+    plot_edge_strategies_dual_contouring_rot_cube()

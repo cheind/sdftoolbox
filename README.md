@@ -1,3 +1,5 @@
+![](https://github.com/cheind/sdftoolbox/actions/workflows/python-package.yml/badge.svg)
+
 # sdftoolbox
 
 This repository provides vectorized Python methods for creating, manipulating and tessellating signed distance fields (SDFs). This library was started to investigate variants of dual isosurface extraction methods, but has since evolved into a useful toolbox around SDFs.

@@ -304,8 +304,12 @@ class Discretized(SDF):
             sdf: (...) sdf values at given locations.
         """
 
-        c = self._interp(self.sdf_values, x)
-        return c.squeeze(-1)
+        m = np.isfinite(x).all(-1)
+
+        sdf = np.zeros(x.shape[:-1])
+        values = self._interp(self.sdf_values, x[m]).squeeze(-1)
+        sdf[m] = values
+        return sdf
 
     def _interp(self, vol: np.ndarray, x: np.ndarray) -> np.ndarray:
         P = x.shape[:-1]

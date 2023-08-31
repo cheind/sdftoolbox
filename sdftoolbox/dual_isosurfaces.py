@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from .sdfs import SDF
 
 
-_logger = logging.getLogger("surfacenets")
+_logger = logging.getLogger("sdftoolbox")
 
 
 @dataclass

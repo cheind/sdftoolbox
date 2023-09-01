@@ -43,26 +43,42 @@ def import_volume_from_density_image(
     fname: Path,
     res: tuple[int, int, int],
     density_range: float = 4.0,
-    density_threshold: float = 0.0,
+    flip: bool = False,
 ) -> np.ndarray:
     """Loads SDF values from a density 2D image.
 
     Both, Instant-NGP and NeuS, provide methods to export grid sampled SDF values
     as a single PNG image. Grid positions are uniquely mapped to 2D pixel locations
     in the target image and the SDF values are transformed to intensity values by
-    the following linear transform
+    a lossy linear transform
 
-        intensity = (density-threshold)*scale + 128.5
+        intensity = int(clip((density-threshold)*scale + 128.5, 0, 255.0))
 
     where
 
         scale = 128.0 / density_range
 
+    Note, these equations seem to be slightly wrong. Disregarding the threshold,
+    a linear mapping
+
+        y = k*x + d
+
+    from [-range,range] to [0,255] should use d=127.5, k=127.5/range.
+
+    Also note, the `threshold` defines the new zero crossing to differentiate inside
+    and outside and should hence not be applied when reading the density image to
+    generate sdfs.
+
+    Additionally, when loading instant-ngp files we need to flip the resulting
+    sdf values, since in instant-ngp higher density values (positive sdf) represent
+    the inside.
+
     Params:
         fname: input path
         res: grid resolution in x,y,z directions
         density_range: range (+/-) of sdf values mapped to 0..255
-        density_threshold: density threshold
+        flip: Flip SDF values (i.e change inside/outside). Needed for instant-ngp but
+            not for NeuS2
 
     Returns:
         sdfvalues: (I,J,K) array of SDF values
@@ -71,12 +87,14 @@ def import_volume_from_density_image(
 
     """
     scale = 128.0 / density_range
-    th = density_threshold
 
     # Load the intensity values as image
     I = np.asarray(imageio.v2.imread(fname)).astype(np.float32)
     # Convert back to 'density' which is SDF in our case
-    D = (I - 128.5) / scale + th
+    # See comment in docs for more info
+    D = (I - 128.5) / scale
+    if flip:
+        D *= -1.0
 
     # Convert pixel coordinates to grid coordinates
     U, V = np.meshgrid(
